@@ -10,13 +10,14 @@ import (
 	"strconv"
 	"time"
 
+	"go.viam.com/rplidar"
+
+	_ "go.viam.com/rplidar/serial" //register
+
 	"github.com/edaniels/golog"
 	"github.com/edaniels/wsapi"
 	"go.viam.com/robotcore/lidar"
 	"go.viam.com/robotcore/lidar/search"
-	"go.viam.com/rplidar"
-	rplidarserial "go.viam.com/rplidar/serial"
-	"nhooyr.io/websocket"
 )
 
 func main() {
@@ -79,41 +80,9 @@ func main() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	httpServer.Handler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		conn, err := websocket.Accept(w, r, nil)
-		if err != nil {
-			golog.Global.Error("error making websocket connection", "error", err)
-			return
-		}
-		defer conn.Close(websocket.StatusNormalClosure, "")
-
-		for {
-			select {
-			case <-r.Context().Done():
-				return
-			default:
-			}
-
-			cmd, err := wsapi.ReadCommand(r.Context(), conn)
-			if err != nil {
-				golog.Global.Errorw("error reading command", "error", err)
-				return
-			}
-			result, err := processCommand(r.Context(), cmd, lidarDevice.(*rplidarserial.Device))
-			if err != nil {
-				resp := wsapi.NewErrorCommandResponse(err)
-				if err := wsapi.WriteJSONCommandResponse(r.Context(), resp, conn); err != nil {
-					golog.Global.Errorw("error writing", "error", err)
-					continue
-				}
-				continue
-			}
-			if err := wsapi.WriteJSONCommandResponse(r.Context(), wsapi.NewSuccessfulCommandResponse(result), conn); err != nil {
-				golog.Global.Errorw("error writing", "error", err)
-				continue
-			}
-		}
-	})
+	wsServer := wsapi.NewServer()
+	registerCommands(wsServer, lidarDevice)
+	httpServer.Handler = wsServer.HTTPHandler()
 
 	errChan := make(chan error, 1)
 	go func() {
@@ -136,25 +105,29 @@ func main() {
 	}
 }
 
-func processCommand(ctx context.Context, cmd *wsapi.Command, lidarDev lidar.Device) (interface{}, error) {
-	switch cmd.Name {
-	case lidar.WSCommandInfo:
+func registerCommands(server wsapi.Server, lidarDev lidar.Device) {
+	server.RegisterCommand(lidar.WSCommandInfo, wsapi.CommandHandlerFunc(func(ctx context.Context, cmd *wsapi.Command) (interface{}, error) {
 		return lidarDev.Info(ctx)
-	case lidar.WSCommandStart:
+	}))
+	server.RegisterCommand(lidar.WSCommandStart, wsapi.CommandHandlerFunc(func(ctx context.Context, cmd *wsapi.Command) (interface{}, error) {
 		return nil, lidarDev.Start(ctx)
-	case lidar.WSCommandStop:
+	}))
+	server.RegisterCommand(lidar.WSCommandStop, wsapi.CommandHandlerFunc(func(ctx context.Context, cmd *wsapi.Command) (interface{}, error) {
 		return nil, lidarDev.Stop(ctx)
-	case lidar.WSCommandClose:
+	}))
+	server.RegisterCommand(lidar.WSCommandClose, wsapi.CommandHandlerFunc(func(ctx context.Context, cmd *wsapi.Command) (interface{}, error) {
 		return nil, lidarDev.Close(ctx)
-	case lidar.WSCommandScan:
+	}))
+	server.RegisterCommand(lidar.WSCommandScan, wsapi.CommandHandlerFunc(func(ctx context.Context, cmd *wsapi.Command) (interface{}, error) {
 		return lidarDev.Scan(ctx, lidar.ScanOptions{})
-	case lidar.WSCommandRange:
+	}))
+	server.RegisterCommand(lidar.WSCommandRange, wsapi.CommandHandlerFunc(func(ctx context.Context, cmd *wsapi.Command) (interface{}, error) {
 		return lidarDev.Range(ctx)
-	case lidar.WSCommandBounds:
+	}))
+	server.RegisterCommand(lidar.WSCommandBounds, wsapi.CommandHandlerFunc(func(ctx context.Context, cmd *wsapi.Command) (interface{}, error) {
 		return lidarDev.Bounds(ctx)
-	case lidar.WSCommandAngularResolution:
+	}))
+	server.RegisterCommand(lidar.WSCommandAngularResolution, wsapi.CommandHandlerFunc(func(ctx context.Context, cmd *wsapi.Command) (interface{}, error) {
 		return lidarDev.AngularResolution(ctx)
-	default:
-		return nil, fmt.Errorf("unknown command %s", cmd.Name)
-	}
+	}))
 }

@@ -146,8 +146,9 @@ github.com/edaniels/golog v0.0.0-20210104162753-3254576d0129/go.mod h1:mSoRCzs6v
 github.com/edaniels/gostream v0.0.0-20210225194545-b2d6bf85806c/go.mod h1:72koDYI+qcKIECAlUUid4wYeeCbWF6CZ/j4eLYag4qQ=
 github.com/edaniels/test v0.0.0-20210217200115-75fc4288dde0 h1:hnK+cHF0aYBvT6osQLGV/WxRDV7/rxk8OI3iALTV+qI=
 github.com/edaniels/test v0.0.0-20210217200115-75fc4288dde0/go.mod h1:/LAnCjNg+OR38AJKwnVDxxZt7dn4C+a3FjKXJvJn158=
-github.com/edaniels/wsapi v0.0.1 h1:vwOqZ6XAbpsIjRIpmyAL/b3SoyAM+Ot8l+dkszl6xaM=
 github.com/edaniels/wsapi v0.0.1/go.mod h1:bKwrkNvqoD0XKrQwWteV63Clz75CQMoMdk04kkeCW18=
+github.com/edaniels/wsapi v0.0.2 h1:Il5V9bzx2cOWQGlNKdRbtL11dLORVzrpfNX/CL+Idus=
+github.com/edaniels/wsapi v0.0.2/go.mod h1:4kfloZt3CB6gHseULKcoxd4kwbhUah77lFHisJVRKhw=
 github.com/envoyproxy/go-control-plane v0.9.0/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.1-0.20191026205805-5f8ba28d4473/go.mod h1:YTl/9mNaCwkRvm6d1a2C3ymFceY/DCBVvsKhRF0iEA4=
 github.com/envoyproxy/go-control-plane v0.9.4/go.mod h1:6rpuAdCZL397s3pYoYcLgu1mIlRU8Am5FuJP05cCM98=
