@@ -1,4 +1,4 @@
-package rplidarserial
+package serial
 
 import (
 	"context"
@@ -10,8 +10,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/viamrobotics/rplidar"
-	rplidargen "github.com/viamrobotics/rplidar/gen"
+	"go.viam.com/rplidar"
+	"go.viam.com/rplidar/gen"
 
 	"go.viam.com/robotcore/lidar"
 	"go.viam.com/robotcore/usb"
@@ -36,19 +36,19 @@ type ResultError struct {
 }
 
 var (
-	ResultOk                 = Result(rplidargen.RESULT_OK)
-	ResultAlreadyDone        = Result(rplidargen.RESULT_ALREADY_DONE)
-	ResultInvalidData        = Result(rplidargen.RESULT_INVALID_DATA)
-	ResultOpFail             = Result(rplidargen.RESULT_OPERATION_FAIL)
-	ResultOpTimeout          = Result(rplidargen.RESULT_OPERATION_TIMEOUT)
-	ResultOpStop             = Result(rplidargen.RESULT_OPERATION_STOP)
-	ResultOpNotSupported     = Result(rplidargen.RESULT_OPERATION_NOT_SUPPORT)
-	ResultFormatNotSupported = Result(rplidargen.RESULT_FORMAT_NOT_SUPPORT)
-	ResultInsufficientMemory = Result(rplidargen.RESULT_INSUFFICIENT_MEMORY)
+	ResultOk                 = Result(gen.RESULT_OK)
+	ResultAlreadyDone        = Result(gen.RESULT_ALREADY_DONE)
+	ResultInvalidData        = Result(gen.RESULT_INVALID_DATA)
+	ResultOpFail             = Result(gen.RESULT_OPERATION_FAIL)
+	ResultOpTimeout          = Result(gen.RESULT_OPERATION_TIMEOUT)
+	ResultOpStop             = Result(gen.RESULT_OPERATION_STOP)
+	ResultOpNotSupported     = Result(gen.RESULT_OPERATION_NOT_SUPPORT)
+	ResultFormatNotSupported = Result(gen.RESULT_FORMAT_NOT_SUPPORT)
+	ResultInsufficientMemory = Result(gen.RESULT_INSUFFICIENT_MEMORY)
 )
 
 func (r Result) Failed() error {
-	if uint64(r)&rplidargen.RESULT_FAIL_BIT == 0 {
+	if uint64(r)&gen.RESULT_FAIL_BIT == 0 {
 		return nil
 	}
 	return ResultError{r}
@@ -86,13 +86,13 @@ func (r ResultError) Error() string {
 const defaultTimeout = uint(1000)
 
 func NewDevice(devicePath string) (*Device, error) {
-	var driver rplidargen.RPlidarDriver
-	devInfo := rplidargen.NewRplidar_response_device_info_t()
-	defer rplidargen.DeleteRplidar_response_device_info_t(devInfo)
+	var driver gen.RPlidarDriver
+	devInfo := gen.NewRplidar_response_device_info_t()
+	defer gen.DeleteRplidar_response_device_info_t(devInfo)
 
 	var connectErr error
 	for _, rate := range []uint{256000, 115200} {
-		possibleDriver := rplidargen.RPlidarDriverCreateDriver(uint(rplidargen.DRIVER_TYPE_SERIALPORT))
+		possibleDriver := gen.RPlidarDriverCreateDriver(uint(gen.DRIVER_TYPE_SERIALPORT))
 		if result := possibleDriver.Connect(devicePath, rate); Result(result) != ResultOk {
 			r := Result(result)
 			if r == ResultOpTimeout {
@@ -124,7 +124,7 @@ func NewDevice(devicePath string) (*Device, error) {
 	serialNum := devInfo.GetSerialnum()
 	var serialNumStr string
 	for pos := 0; pos < 16; pos++ {
-		serialNumStr += fmt.Sprintf("%02X", rplidargen.ByteArray_getitem(serialNum, pos))
+		serialNumStr += fmt.Sprintf("%02X", gen.ByteArray_getitem(serialNum, pos))
 	}
 
 	firmwareVer := fmt.Sprintf("%d.%02d",
@@ -132,14 +132,14 @@ func NewDevice(devicePath string) (*Device, error) {
 		devInfo.GetFirmware_version()&0xFF)
 	hardwareRev := int(devInfo.GetHardware_version())
 
-	healthInfo := rplidargen.NewRplidar_response_device_health_t()
-	defer rplidargen.DeleteRplidar_response_device_health_t(healthInfo)
+	healthInfo := gen.NewRplidar_response_device_health_t()
+	defer gen.DeleteRplidar_response_device_health_t(healthInfo)
 
 	if result := driver.GetHealth(healthInfo, defaultTimeout); Result(result) != ResultOk {
 		return nil, fmt.Errorf("failed to get health: %w", Result(result).Failed())
 	}
 
-	if int(healthInfo.GetStatus()) == rplidargen.RPLIDAR_STATUS_ERROR {
+	if int(healthInfo.GetStatus()) == gen.RPLIDAR_STATUS_ERROR {
 		return nil, errors.New("bad health")
 	}
 
@@ -155,8 +155,8 @@ func NewDevice(devicePath string) (*Device, error) {
 
 type Device struct {
 	mu          sync.Mutex
-	driver      rplidargen.RPlidarDriver
-	nodes       rplidargen.Rplidar_response_measurement_node_hq_t
+	driver      gen.RPlidarDriver
+	nodes       gen.Rplidar_response_measurement_node_hq_t
 	nodeSize    int
 	started     bool
 	scannedOnce bool
@@ -169,13 +169,13 @@ type Device struct {
 	hardwareRevision int
 }
 
-func (d *Device) Info() *rplidar.DeviceInfo {
-	return &rplidar.DeviceInfo{
-		Model:            d.Model(),
-		SerialNumber:     d.serialNumber,
-		FirmwareVersion:  d.firmwareVersion,
-		HardwareRevision: d.hardwareRevision,
-	}
+func (d *Device) Info(ctx context.Context) (map[string]interface{}, error) {
+	return map[string]interface{}{
+		"model":             d.Model(),
+		"serial_number":     d.serialNumber,
+		"firmware_version":  d.firmwareVersion,
+		"hardware_revision": d.hardwareRevision,
+	}, nil
 }
 
 func (d *Device) SerialNumber() string {
@@ -254,7 +254,7 @@ func (d *Device) start() {
 	d.started = true
 	d.driver.StartMotor()
 	d.driver.StartScan(false, true)
-	d.nodes = rplidargen.New_measurementNodeHqArray(d.nodeSize)
+	d.nodes = gen.New_measurementNodeHqArray(d.nodeSize)
 }
 
 func (d *Device) Stop(ctx context.Context) error {
@@ -262,7 +262,7 @@ func (d *Device) Stop(ctx context.Context) error {
 	defer d.mu.Unlock()
 	if d.nodes != nil {
 		defer func() {
-			rplidargen.Delete_measurementNodeHqArray(d.nodes)
+			gen.Delete_measurementNodeHqArray(d.nodes)
 			d.nodes = nil
 		}()
 	}
@@ -315,7 +315,7 @@ func (d *Device) scan(options lidar.ScanOptions) (lidar.Measurements, error) {
 		d.driver.AscendScanData(d.nodes, nodeCount)
 
 		for pos := 0; pos < int(nodeCount); pos++ {
-			node := rplidargen.MeasurementNodeHqArray_getitem(d.nodes, pos)
+			node := gen.MeasurementNodeHqArray_getitem(d.nodes, pos)
 			if node.GetDist_mm_q2() == 0 {
 				dropCount++
 				continue // TODO(erd): okay to skip?

@@ -11,10 +11,9 @@ import (
 	"strconv"
 	"time"
 
-	rplidarws "github.com/viamrobotics/rplidar/ws"
+	"go.viam.com/robotcore/lidar"
 
 	"github.com/edaniels/golog"
-	"go.viam.com/robotcore/lidar"
 )
 
 func main() {
@@ -27,22 +26,16 @@ func main() {
 		port = int(portParsed)
 	}
 
-	lidarDev, err := rplidarws.NewDevice(context.Background(), fmt.Sprintf("ws://localhost:%d", port))
+	lidarDev, err := lidar.NewWSDevice(context.Background(), fmt.Sprintf("ws://localhost:%d", port))
 	if err != nil {
 		golog.Global.Fatal(err)
 	}
 
-	if rpl, ok := lidarDev.(*rplidarws.Device); ok {
-		info, err := rpl.Info(context.Background())
-		if err != nil {
-			golog.Global.Fatal(err)
-		}
-		golog.Global.Infow("rplidar",
-			"model", info.Model,
-			"serial", info.SerialNumber,
-			"firmware_ver", info.FirmwareVersion,
-			"hardware_rev", info.HardwareRevision)
+	info, err := lidarDev.Info(context.Background())
+	if err != nil {
+		golog.Global.Fatal(err)
 	}
+	golog.Global.Infow("lidar", "info", info)
 
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, os.Interrupt)

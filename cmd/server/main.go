@@ -10,15 +10,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/viamrobotics/rplidar"
-	rplidarws "github.com/viamrobotics/rplidar/ws"
-
-	rplidarserial "github.com/viamrobotics/rplidar/serial"
-
 	"github.com/edaniels/golog"
 	"github.com/edaniels/wsapi"
 	"go.viam.com/robotcore/lidar"
 	"go.viam.com/robotcore/lidar/search"
+	"go.viam.com/rplidar"
+	rplidarserial "go.viam.com/rplidar/serial"
 	"nhooyr.io/websocket"
 )
 
@@ -64,15 +61,11 @@ func main() {
 	if err != nil {
 		golog.Global.Fatal(err)
 	}
-	if rpl, ok := lidarDevice.(*rplidarserial.Device); ok {
-		info := rpl.Info()
-		golog.Global.Infow("rplidar",
-			"dev_path", deviceDesc.Path,
-			"model", info.Model,
-			"serial", info.SerialNumber,
-			"firmware_ver", info.FirmwareVersion,
-			"hardware_rev", info.HardwareRevision)
+	info, err := lidarDevice.Info(context.Background())
+	if err != nil {
+		golog.Global.Fatal(err)
 	}
+	golog.Global.Infow("rplidar", "info", info)
 	defer func() {
 		if err := lidarDevice.Stop(context.Background()); err != nil {
 			golog.Global.Errorw("error stopping lidar device", "error", err)
@@ -108,14 +101,14 @@ func main() {
 			}
 			result, err := processCommand(r.Context(), cmd, lidarDevice.(*rplidarserial.Device))
 			if err != nil {
-				resp := wsapi.NewErrorResponse(err)
-				if err := wsapi.WriteJSONResponse(r.Context(), resp, conn); err != nil {
+				resp := wsapi.NewErrorCommandResponse(err)
+				if err := wsapi.WriteJSONCommandResponse(r.Context(), resp, conn); err != nil {
 					golog.Global.Errorw("error writing", "error", err)
 					continue
 				}
 				continue
 			}
-			if err := wsapi.WriteJSONResponse(r.Context(), wsapi.NewSuccessfulResponse(result), conn); err != nil {
+			if err := wsapi.WriteJSONCommandResponse(r.Context(), wsapi.NewSuccessfulCommandResponse(result), conn); err != nil {
 				golog.Global.Errorw("error writing", "error", err)
 				continue
 			}
@@ -143,23 +136,23 @@ func main() {
 	}
 }
 
-func processCommand(ctx context.Context, cmd *wsapi.Command, lidarDev *rplidarserial.Device) (interface{}, error) {
+func processCommand(ctx context.Context, cmd *wsapi.Command, lidarDev lidar.Device) (interface{}, error) {
 	switch cmd.Name {
-	case rplidarws.CommandInfo:
-		return lidarDev.Info(), nil
-	case rplidarws.CommandStart:
+	case lidar.WSCommandInfo:
+		return lidarDev.Info(ctx)
+	case lidar.WSCommandStart:
 		return nil, lidarDev.Start(ctx)
-	case rplidarws.CommandStop:
+	case lidar.WSCommandStop:
 		return nil, lidarDev.Stop(ctx)
-	case rplidarws.CommandClose:
+	case lidar.WSCommandClose:
 		return nil, lidarDev.Close(ctx)
-	case rplidarws.CommandScan:
+	case lidar.WSCommandScan:
 		return lidarDev.Scan(ctx, lidar.ScanOptions{})
-	case rplidarws.CommandRange:
+	case lidar.WSCommandRange:
 		return lidarDev.Range(ctx)
-	case rplidarws.CommandBounds:
+	case lidar.WSCommandBounds:
 		return lidarDev.Bounds(ctx)
-	case rplidarws.CommandAngularResolution:
+	case lidar.WSCommandAngularResolution:
 		return lidarDev.AngularResolution(ctx)
 	default:
 		return nil, fmt.Errorf("unknown command %s", cmd.Name)

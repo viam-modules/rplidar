@@ -1,4 +1,4 @@
-%module rplidargen
+%module gen
 
 %include <stdint.i>
 %include <carrays.i>
