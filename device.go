@@ -1,6 +1,6 @@
 package rplidar
 
-import "github.com/viamrobotics/robotcore/lidar"
+import "go.viam.com/robotcore/lidar"
 
 const ModelName = "rplidar"
 const DeviceType = lidar.DeviceType("RPLidar")

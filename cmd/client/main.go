@@ -14,7 +14,7 @@ import (
 	rplidarws "github.com/viamrobotics/rplidar/ws"
 
 	"github.com/edaniels/golog"
-	"github.com/viamrobotics/robotcore/lidar"
+	"go.viam.com/robotcore/lidar"
 )
 
 func main() {

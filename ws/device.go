@@ -9,7 +9,7 @@ import (
 	"github.com/viamrobotics/rplidar"
 
 	"github.com/edaniels/wsapi"
-	"github.com/viamrobotics/robotcore/lidar"
+	"go.viam.com/robotcore/lidar"
 	"nhooyr.io/websocket"
 )
 

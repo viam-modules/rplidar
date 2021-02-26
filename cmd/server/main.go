@@ -17,8 +17,8 @@ import (
 
 	"github.com/edaniels/golog"
 	"github.com/edaniels/wsapi"
-	"github.com/viamrobotics/robotcore/lidar"
-	"github.com/viamrobotics/robotcore/lidar/search"
+	"go.viam.com/robotcore/lidar"
+	"go.viam.com/robotcore/lidar/search"
 	"nhooyr.io/websocket"
 )
 

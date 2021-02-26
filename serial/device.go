@@ -13,9 +13,9 @@ import (
 	"github.com/viamrobotics/rplidar"
 	rplidargen "github.com/viamrobotics/rplidar/gen"
 
-	"github.com/viamrobotics/robotcore/lidar"
-	"github.com/viamrobotics/robotcore/usb"
-	"github.com/viamrobotics/robotcore/utils"
+	"go.viam.com/robotcore/lidar"
+	"go.viam.com/robotcore/usb"
+	"go.viam.com/robotcore/utils"
 )
 
 func init() {
