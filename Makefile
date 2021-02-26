@@ -21,7 +21,7 @@ sdk:
 	sudo chmod 755 /usr/local/lib/librplidar_sdk.a
 
 swig:
-	cd gen && swig -v -go -cgo -c++ -intgosize 64 rplidar.i
+	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
 
 clean:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
