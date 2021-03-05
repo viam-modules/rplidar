@@ -15,7 +15,6 @@ import (
 
 	"go.viam.com/robotcore/lidar"
 	"go.viam.com/robotcore/usb"
-	"go.viam.com/robotcore/utils"
 )
 
 func init() {
@@ -340,8 +339,8 @@ func (d *Device) scan(options lidar.ScanOptions) (lidar.Measurements, error) {
 	detectedRay := false
 	for mIdx := 1; mIdx < len(measurements); mIdx++ {
 		curr := measurements[mIdx]
-		currAngle := utils.RadToDeg(curr.Angle())
-		prevAngle := utils.RadToDeg(prev.Angle())
+		currAngle := curr.AngleDeg()
+		prevAngle := prev.AngleDeg()
 		currDist := curr.Distance()
 		prevDist := prev.Distance()
 		if math.Abs(currAngle-prevAngle) < minAngleDiff {
