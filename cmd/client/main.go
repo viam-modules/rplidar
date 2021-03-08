@@ -17,6 +17,8 @@ import (
 )
 
 func main() {
+	flag.Parse()
+
 	port := 4444
 	if flag.NArg() >= 1 {
 		portParsed, err := strconv.ParseInt(flag.Arg(0), 10, 32)
