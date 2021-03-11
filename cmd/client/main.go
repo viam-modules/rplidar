@@ -4,11 +4,9 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"fmt"
 	"io"
 	"os"
 	"os/signal"
-	"strconv"
 	"time"
 
 	"go.viam.com/robotcore/lidar"
@@ -17,18 +15,11 @@ import (
 )
 
 func main() {
+	var deviceAddress string
+	flag.StringVar(&deviceAddress, "device", "ws://localhost:4444", "device ws address")
 	flag.Parse()
 
-	port := 4444
-	if flag.NArg() >= 1 {
-		portParsed, err := strconv.ParseInt(flag.Arg(0), 10, 32)
-		if err != nil {
-			golog.Global.Fatal(err)
-		}
-		port = int(portParsed)
-	}
-
-	lidarDev, err := lidar.NewWSDevice(context.Background(), fmt.Sprintf("ws://localhost:%d", port))
+	lidarDev, err := lidar.NewWSDevice(context.Background(), deviceAddress)
 	if err != nil {
 		golog.Global.Fatal(err)
 	}
