@@ -8,6 +8,7 @@ import (
 
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
+	"go.viam.com/robotcore/api/client"
 	"go.viam.com/robotcore/lidar"
 	"go.viam.com/robotcore/rlog"
 	"go.viam.com/robotcore/utils"
@@ -34,20 +35,28 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
-	client, err := lidar.NewClient(ctx, deviceAddress)
+	robotClient, err := client.NewRobotClient(ctx, deviceAddress, logger)
 	if err != nil {
 		return err
 	}
+	defer func() {
+		err = multierr.Combine(err, robotClient.Close(context.Background()))
+	}()
+	names := robotClient.LidarDeviceNames()
+	if len(names) == 0 {
+		return errors.New("no lidar devices found")
+	}
+	lidarDevice := robotClient.LidarDeviceByName(names[0])
 
-	if err := client.Start(ctx); err != nil {
+	if err := lidarDevice.Start(ctx); err != nil {
 		return err
 	}
 
 	defer func() {
-		err = multierr.Combine(err, client.Close(context.Background()))
+		err = multierr.Combine(err, lidarDevice.Stop(context.Background()))
 	}()
 
-	info, err := client.Info(ctx)
+	info, err := lidarDevice.Info(ctx)
 	if err != nil {
 		return err
 	}
@@ -69,7 +78,7 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 		case <-ticker.C:
 		}
 
-		measurements, err := client.Scan(context.Background(), lidar.ScanOptions{})
+		measurements, err := lidarDevice.Scan(context.Background(), lidar.ScanOptions{})
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil

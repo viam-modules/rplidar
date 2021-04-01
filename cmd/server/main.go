@@ -12,10 +12,13 @@ import (
 
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
+	"go.viam.com/robotcore/api"
+	apiserver "go.viam.com/robotcore/api/server"
 	"go.viam.com/robotcore/lidar"
 	"go.viam.com/robotcore/lidar/search"
-	pb "go.viam.com/robotcore/proto/lidar/v1"
+	pb "go.viam.com/robotcore/proto/api/v1"
 	"go.viam.com/robotcore/rlog"
+	"go.viam.com/robotcore/robot"
 	"go.viam.com/robotcore/rpc"
 	"go.viam.com/robotcore/utils"
 )
@@ -94,11 +97,14 @@ func runServer(ctx context.Context, port int, deviceDesc lidar.DeviceDescription
 		err = multierr.Combine(err, rpcServer.Stop())
 	}()
 
+	r := robot.NewBlankRobot(logger)
+	r.AddLidar(lidarDevice, api.Component{})
+
 	if err := rpcServer.RegisterServiceServer(
 		ctx,
-		&pb.LidarService_ServiceDesc,
-		lidar.NewServer(lidarDevice),
-		pb.RegisterLidarServiceHandlerFromEndpoint,
+		&pb.RobotService_ServiceDesc,
+		apiserver.New(r),
+		pb.RegisterRobotServiceHandlerFromEndpoint,
 	); err != nil {
 		return err
 	}
