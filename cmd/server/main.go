@@ -71,7 +71,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runServer(ctx context.Context, port int, deviceDesc lidar.DeviceDescription, logger golog.Logger) (err error) {
-	lidarDevice, err := lidar.CreateDevice(ctx, deviceDesc)
+	lidarDevice, err := lidar.CreateDevice(ctx, deviceDesc, logger)
 	if err != nil {
 		return err
 	}

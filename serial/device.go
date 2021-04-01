@@ -13,13 +13,14 @@ import (
 	"go.viam.com/rplidar"
 	"go.viam.com/rplidar/gen"
 
+	"github.com/edaniels/golog"
 	"go.viam.com/robotcore/lidar"
 	"go.viam.com/robotcore/usb"
 )
 
 func init() {
 	lidar.RegisterDeviceType(rplidar.DeviceType, lidar.DeviceTypeRegistration{
-		New: func(ctx context.Context, desc lidar.DeviceDescription) (lidar.Device, error) {
+		New: func(ctx context.Context, desc lidar.DeviceDescription, logger golog.Logger) (lidar.Device, error) {
 			return NewDevice(desc.Path)
 		},
 		USBInfo: &usb.Identifier{
