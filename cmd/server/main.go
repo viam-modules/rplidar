@@ -14,7 +14,6 @@ import (
 	"go.uber.org/multierr"
 	"go.viam.com/robotcore/api"
 	apiserver "go.viam.com/robotcore/api/server"
-	"go.viam.com/robotcore/lidar"
 	"go.viam.com/robotcore/lidar/search"
 	pb "go.viam.com/robotcore/proto/api/v1"
 	"go.viam.com/robotcore/rlog"
@@ -47,34 +46,36 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
 	}
 
-	deviceDescs := search.Devices()
-	if len(deviceDescs) != 0 {
-		golog.Global.Debugf("detected %d lidar devices", len(deviceDescs))
-		for _, desc := range deviceDescs {
-			golog.Global.Debugf("%s (%s)", desc.Type, desc.Path)
+	lidarComponents := search.Devices()
+	if len(lidarComponents) != 0 {
+		golog.Global.Debugf("detected %d lidar devices", len(lidarComponents))
+		for _, comp := range lidarComponents {
+			golog.Global.Debug(comp)
 		}
 	}
 	if argsParsed.DevicePath != "" {
-		deviceDescs = []lidar.DeviceDescription{{Type: rplidar.DeviceType, Path: argsParsed.DevicePath}}
+		lidarComponents = []api.Component{{Type: api.ComponentTypeLidar, Model: rplidar.ModelName, Host: argsParsed.DevicePath}}
 	}
 
-	if len(deviceDescs) == 0 {
+	if len(lidarComponents) == 0 {
 		return errors.New("no lidar devices found")
 	}
 
-	deviceDesc := deviceDescs[0]
-	if deviceDesc.Type != rplidar.DeviceType {
+	lidarComponent := lidarComponents[0]
+	if lidarComponent.Model != rplidar.ModelName {
 		return errors.New("device is not rplidar")
 	}
 
-	return runServer(ctx, int(argsParsed.Port), deviceDesc, logger)
+	return runServer(ctx, int(argsParsed.Port), lidarComponent, logger)
 }
 
-func runServer(ctx context.Context, port int, deviceDesc lidar.DeviceDescription, logger golog.Logger) (err error) {
-	lidarDevice, err := lidar.CreateDevice(ctx, deviceDesc, logger)
+func runServer(ctx context.Context, port int, lidarComponent api.Component, logger golog.Logger) (err error) {
+	r, err := robot.NewRobot(ctx, api.Config{Components: []api.Component{lidarComponent}}, logger)
 	if err != nil {
 		return err
 	}
+	lidarDevice := r.LidarDeviceByName(r.LidarDeviceNames()[0])
+
 	info, err := lidarDevice.Info(ctx)
 	if err != nil {
 		return err
@@ -96,9 +97,6 @@ func runServer(ctx context.Context, port int, deviceDesc lidar.DeviceDescription
 	defer func() {
 		err = multierr.Combine(err, rpcServer.Stop())
 	}()
-
-	r := robot.NewBlankRobot(logger)
-	r.AddLidar(lidarDevice, api.Component{})
 
 	if err := rpcServer.RegisterServiceServer(
 		ctx,
