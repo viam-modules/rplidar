@@ -40,7 +40,7 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 		return err
 	}
 	defer func() {
-		err = multierr.Combine(err, robotClient.Close(context.Background()))
+		err = multierr.Combine(err, robotClient.Close())
 	}()
 	names := robotClient.LidarDeviceNames()
 	if len(names) == 0 {
