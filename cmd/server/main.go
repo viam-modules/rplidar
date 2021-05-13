@@ -12,14 +12,14 @@ import (
 
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
-	"go.viam.com/robotcore/api"
-	apiserver "go.viam.com/robotcore/api/server"
-	"go.viam.com/robotcore/lidar/search"
-	pb "go.viam.com/robotcore/proto/api/v1"
-	"go.viam.com/robotcore/rlog"
-	"go.viam.com/robotcore/robot"
-	"go.viam.com/robotcore/rpc"
-	"go.viam.com/robotcore/utils"
+	"go.viam.com/core/config"
+	"go.viam.com/core/grpc/server"
+	"go.viam.com/core/lidar/search"
+	pb "go.viam.com/core/proto/api/v1"
+	"go.viam.com/core/rlog"
+	robotimpl "go.viam.com/core/robot/impl"
+	"go.viam.com/core/rpc"
+	"go.viam.com/core/utils"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		}
 	}
 	if argsParsed.DevicePath != "" {
-		lidarComponents = []api.Component{{Type: api.ComponentTypeLidar, Model: rplidar.ModelName, Host: argsParsed.DevicePath}}
+		lidarComponents = []config.Component{{Type: config.ComponentTypeLidar, Model: rplidar.ModelName, Host: argsParsed.DevicePath}}
 	}
 
 	if len(lidarComponents) == 0 {
@@ -69,12 +69,12 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	return runServer(ctx, int(argsParsed.Port), lidarComponent, logger)
 }
 
-func runServer(ctx context.Context, port int, lidarComponent api.Component, logger golog.Logger) (err error) {
-	r, err := robot.NewRobot(ctx, api.Config{Components: []api.Component{lidarComponent}}, logger)
+func runServer(ctx context.Context, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
+	r, err := robotimpl.NewRobot(ctx, &config.Config{Components: []config.Component{lidarComponent}}, logger)
 	if err != nil {
 		return err
 	}
-	lidarDevice := r.LidarDeviceByName(r.LidarDeviceNames()[0])
+	lidarDevice := r.LidarByName(r.LidarNames()[0])
 
 	info, err := lidarDevice.Info(ctx)
 	if err != nil {
@@ -101,7 +101,7 @@ func runServer(ctx context.Context, port int, lidarComponent api.Component, logg
 	if err := rpcServer.RegisterServiceServer(
 		ctx,
 		&pb.RobotService_ServiceDesc,
-		apiserver.New(r),
+		server.New(r),
 		pb.RegisterRobotServiceHandlerFromEndpoint,
 	); err != nil {
 		return err

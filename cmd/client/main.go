@@ -8,10 +8,10 @@ import (
 
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
-	"go.viam.com/robotcore/api/client"
-	"go.viam.com/robotcore/lidar"
-	"go.viam.com/robotcore/rlog"
-	"go.viam.com/robotcore/utils"
+	"go.viam.com/core/grpc/client"
+	"go.viam.com/core/lidar"
+	"go.viam.com/core/rlog"
+	"go.viam.com/core/utils"
 )
 
 func main() {
@@ -42,11 +42,11 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 	defer func() {
 		err = multierr.Combine(err, robotClient.Close())
 	}()
-	names := robotClient.LidarDeviceNames()
+	names := robotClient.LidarNames()
 	if len(names) == 0 {
 		return errors.New("no lidar devices found")
 	}
-	lidarDevice := robotClient.LidarDeviceByName(names[0])
+	lidarDevice := robotClient.LidarByName(names[0])
 
 	if err := lidarDevice.Start(ctx); err != nil {
 		return err

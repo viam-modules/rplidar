@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"image"
 	"math"
 	"sort"
 	"sync"
@@ -14,16 +13,19 @@ import (
 	"go.viam.com/rplidar/gen"
 
 	"github.com/edaniels/golog"
-	"go.viam.com/robotcore/api"
-	"go.viam.com/robotcore/lidar"
-	"go.viam.com/robotcore/usb"
+	"github.com/golang/geo/r2"
+	"go.viam.com/core/config"
+	"go.viam.com/core/lidar"
+	"go.viam.com/core/registry"
+	"go.viam.com/core/robot"
+	"go.viam.com/core/usb"
 )
 
 func init() {
-	api.RegisterLidarDevice(rplidar.ModelName, func(ctx context.Context, r api.Robot, config api.Component, logger golog.Logger) (lidar.Device, error) {
+	registry.RegisterLidar(rplidar.ModelName, func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (lidar.Lidar, error) {
 		return NewDevice(config.Host)
 	})
-	lidar.RegisterDeviceType(rplidar.DeviceType, lidar.DeviceTypeRegistration{
+	lidar.RegisterType(rplidar.Type, lidar.TypeRegistration{
 		USBInfo: &usb.Identifier{
 			Vendor:  0x10c4,
 			Product: 0xea60,
@@ -161,7 +163,7 @@ type Device struct {
 	nodeSize    int
 	started     bool
 	scannedOnce bool
-	bounds      *image.Point
+	bounds      *r2.Point
 
 	// info
 	model            byte
@@ -207,7 +209,7 @@ func (d *Device) Model() string {
 	}
 }
 
-func (d *Device) Range(ctx context.Context) (int, error) {
+func (d *Device) Range(ctx context.Context) (float64, error) {
 	switch d.model {
 	case modelA1:
 		return 12, nil
@@ -229,17 +231,17 @@ func (d *Device) filterParams() (minAngleDiff float64, maxDistDiff float64) {
 	}
 }
 
-func (d *Device) Bounds(ctx context.Context) (image.Point, error) {
+func (d *Device) Bounds(ctx context.Context) (r2.Point, error) {
 	if d.bounds != nil {
 		return *d.bounds, nil
 	}
 	r, err := d.Range(ctx)
 	if err != nil {
-		return image.Point{}, err
+		return r2.Point{}, err
 	}
 	width := r * 2
 	height := width
-	bounds := image.Point{width, height}
+	bounds := r2.Point{width, height}
 	d.bounds = &bounds
 	return bounds, nil
 }
