@@ -35,7 +35,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
-	robotClient, err := client.NewRobotClient(ctx, deviceAddress, logger)
+	robotClient, err := client.NewClient(ctx, deviceAddress, logger)
 	if err != nil {
 		return err
 	}
