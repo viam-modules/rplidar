@@ -1,5 +1,7 @@
 
-## Dependencies
+## Dependencies for golang
+
+The below will only work for Viam, Inc. employees right now. The C++ code is independent however.
 
 Make sure the following is in your shell configuration:
 ```
