@@ -13,13 +13,13 @@ import (
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
 	"go.viam.com/core/config"
-	"go.viam.com/core/grpc/server"
+	grpcserver "go.viam.com/core/grpc/server"
 	"go.viam.com/core/lidar/search"
 	pb "go.viam.com/core/proto/api/v1"
 	"go.viam.com/core/rlog"
 	robotimpl "go.viam.com/core/robot/impl"
-	"go.viam.com/core/rpc"
-	"go.viam.com/core/utils"
+	"go.viam.com/utils"
+	rpcserver "go.viam.com/utils/rpc/server"
 )
 
 func main() {
@@ -90,7 +90,7 @@ func runServer(ctx context.Context, port int, lidarComponent config.Component, l
 		return err
 	}
 
-	rpcServer, err := rpc.NewServer()
+	rpcServer, err := rpcserver.New(logger)
 	if err != nil {
 		return err
 	}
@@ -101,7 +101,7 @@ func runServer(ctx context.Context, port int, lidarComponent config.Component, l
 	if err := rpcServer.RegisterServiceServer(
 		ctx,
 		&pb.RobotService_ServiceDesc,
-		server.New(r),
+		grpcserver.New(r),
 		pb.RegisterRobotServiceHandlerFromEndpoint,
 	); err != nil {
 		return err

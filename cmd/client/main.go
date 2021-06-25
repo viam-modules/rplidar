@@ -11,7 +11,7 @@ import (
 	"go.viam.com/core/grpc/client"
 	"go.viam.com/core/lidar"
 	"go.viam.com/core/rlog"
-	"go.viam.com/core/utils"
+	"go.viam.com/utils"
 )
 
 func main() {

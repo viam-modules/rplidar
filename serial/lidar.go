@@ -33,11 +33,17 @@ func init() {
 	})
 }
 
-type Result uint32
-type ResultError struct {
-	Result
-}
+type (
+	// Result describes the status of an RPLidar operation.
+	Result uint32
 
+	// ResultError is a result that encodes an error.
+	ResultError struct {
+		Result
+	}
+)
+
+// The set of possible results.
 var (
 	ResultOk                 = Result(gen.RESULT_OK)
 	ResultAlreadyDone        = Result(gen.RESULT_ALREADY_DONE)
@@ -50,6 +56,7 @@ var (
 	ResultInsufficientMemory = Result(gen.RESULT_INSUFFICIENT_MEMORY)
 )
 
+// Failed returns an error if the result is that of a failure.
 func (r Result) Failed() error {
 	if uint64(r)&gen.RESULT_FAIL_BIT == 0 {
 		return nil
@@ -57,6 +64,7 @@ func (r Result) Failed() error {
 	return ResultError{r}
 }
 
+// String returns a human readable version of a result.
 func (r Result) String() string {
 	switch r {
 	case ResultOk:
@@ -82,12 +90,14 @@ func (r Result) String() string {
 	}
 }
 
+// Error returns the error as a human readable string.
 func (r ResultError) Error() string {
 	return r.String()
 }
 
 const defaultTimeout = uint(1000)
 
+// NewDevice returns a new RPLidar device at the given path.
 func NewDevice(devicePath string) (*Device, error) {
 	var driver gen.RPlidarDriver
 	devInfo := gen.NewRplidar_response_device_info_t()
@@ -156,6 +166,7 @@ func NewDevice(devicePath string) (*Device, error) {
 	}, nil
 }
 
+// Device controls an RPLidar device.
 type Device struct {
 	mu          sync.Mutex
 	driver      gen.RPlidarDriver
@@ -172,6 +183,7 @@ type Device struct {
 	hardwareRevision int
 }
 
+// Info returns metadata about the device.
 func (d *Device) Info(ctx context.Context) (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"model":             d.Model(),
@@ -181,14 +193,17 @@ func (d *Device) Info(ctx context.Context) (map[string]interface{}, error) {
 	}, nil
 }
 
+// SerialNumber returns the serial number of the device.
 func (d *Device) SerialNumber() string {
 	return d.serialNumber
 }
 
+// FirmwareVersion returns the firmware version of the device.
 func (d *Device) FirmwareVersion() string {
 	return d.firmwareVersion
 }
 
+// HardwareRevision returns the hardware version of the device.
 func (d *Device) HardwareRevision() int {
 	return d.hardwareRevision
 }
@@ -198,6 +213,7 @@ const (
 	modelA3 = 49
 )
 
+// Model returns the model number of the device, if it is known.
 func (d *Device) Model() string {
 	switch d.model {
 	case modelA1:
@@ -209,6 +225,7 @@ func (d *Device) Model() string {
 	}
 }
 
+// Range returns the meter range of the device.
 func (d *Device) Range(ctx context.Context) (float64, error) {
 	switch d.model {
 	case modelA1:
@@ -231,6 +248,7 @@ func (d *Device) filterParams() (minAngleDiff float64, maxDistDiff float64) {
 	}
 }
 
+// Bounds returns the square meter bounds of the device.
 func (d *Device) Bounds(ctx context.Context) (r2.Point, error) {
 	if d.bounds != nil {
 		return *d.bounds, nil
@@ -246,6 +264,7 @@ func (d *Device) Bounds(ctx context.Context) (r2.Point, error) {
 	return bounds, nil
 }
 
+// Start requests that the device start up (start spinning).
 func (d *Device) Start(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -260,6 +279,7 @@ func (d *Device) start() {
 	d.nodes = gen.New_measurementNodeHqArray(d.nodeSize)
 }
 
+// Stop request that the device stop (stop spinning).
 func (d *Device) Stop(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -274,12 +294,14 @@ func (d *Device) Stop(ctx context.Context) error {
 	return nil
 }
 
+// Close just stops the device.
 func (d *Device) Close(ctx context.Context) error {
 	return d.Stop(ctx)
 }
 
 const defaultNumScans = 3
 
+// Scan performs a scan on the device and performs some filtering to clean up the data.
 func (d *Device) Scan(ctx context.Context, options lidar.ScanOptions) (lidar.Measurements, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -362,6 +384,7 @@ func (d *Device) scan(options lidar.ScanOptions) (lidar.Measurements, error) {
 	return filteredMeasurements, nil
 }
 
+// AngularResolution returns the highest angular resolution the device offers.
 func (d *Device) AngularResolution(ctx context.Context) (float64, error) {
 	switch d.model {
 	case modelA1:
