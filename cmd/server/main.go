@@ -8,20 +8,19 @@ import (
 
 	"go.viam.com/rplidar"
 
-	_ "go.viam.com/rplidar/serial" //register
-
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
 	"go.viam.com/rdk/config"
-	grpcserver "go.viam.com/rdk/grpc/server"
+	"go.viam.com/rdk/rlog"
 	"go.viam.com/rdk/serial"
-
-	//"go.viam.com/core/lidar/search"
-	pb "go.viam.com/core/proto/api/v1"
-	"go.viam.com/core/rlog"
-	robotimpl "go.viam.com/rdk/robot/impl"
 	"go.viam.com/utils"
+
+	grpcserver "go.viam.com/rdk/grpc/server"
+	pb "go.viam.com/rdk/proto/api/v1"
+	robotimpl "go.viam.com/rdk/robot/impl"
 	rpcserver "go.viam.com/utils/rpc"
+
+	_ "go.viam.com/rplidar/serial" //register
 )
 
 func main() {

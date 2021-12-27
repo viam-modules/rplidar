@@ -11,7 +11,6 @@ require (
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/polyfloyd/go-errorlint v0.0.0-20210722154253-910bb7978349
 	go.uber.org/multierr v1.7.0
-	go.viam.com/core v0.0.0-20211222001551-9ed5b01421ed
 	go.viam.com/rdk v0.0.0-20211227174643-8bb24ee6bfa7
 	go.viam.com/utils v0.0.3-0.20211226004732-783522f55bd4
 	golang.org/x/tools v0.1.7

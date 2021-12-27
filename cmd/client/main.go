@@ -8,9 +8,8 @@ import (
 
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
-	"go.viam.com/rdk/grpc/client"
 
-	//"go.viam.com/core/lidar"
+	"go.viam.com/rdk/grpc/client"
 	"go.viam.com/rdk/rlog"
 	"go.viam.com/utils"
 )
