@@ -14,12 +14,13 @@ import (
 	"go.uber.org/multierr"
 	"go.viam.com/core/config"
 	grpcserver "go.viam.com/core/grpc/server"
-	"go.viam.com/core/lidar/search"
+
+	//"go.viam.com/core/lidar/search"
 	pb "go.viam.com/core/proto/api/v1"
 	"go.viam.com/core/rlog"
 	robotimpl "go.viam.com/core/robot/impl"
 	"go.viam.com/utils"
-	rpcserver "go.viam.com/utils/rpc/server"
+	//rpcserver "go.viam.com/utils/rpc/server"
 )
 
 func main() {
@@ -74,15 +75,15 @@ func runServer(ctx context.Context, port int, lidarComponent config.Component, l
 	if err != nil {
 		return err
 	}
-	lidarDevice := r.LidarByName(r.LidarNames()[0])
+	cameraDevice, _ := r.CameraByName(r.CameraNames()[0])
 
-	info, err := lidarDevice.Info(ctx)
+	info, err := cameraDevice.Info(ctx)
 	if err != nil {
 		return err
 	}
 	golog.Global.Infow("rplidar", "info", info)
 	defer func() {
-		err = multierr.Combine(err, lidarDevice.Stop(context.Background()))
+		err = multierr.Combine(err, cameraDevice.Close())
 	}()
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))

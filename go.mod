@@ -7,9 +7,13 @@ require (
 	github.com/edaniels/golog v0.0.0-20210326173913-16d408aa7a5e
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551
 	github.com/golangci/golangci-lint v1.39.0
+	github.com/gopherjs/gopherjs v0.0.0-20200217142428-fce0ec30dd00 // indirect
+	github.com/huandu/xstrings v1.3.2 // indirect
+	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/polyfloyd/go-errorlint v0.0.0-20201127212506-19bd8db6546f
-	go.uber.org/multierr v1.6.0
-	go.viam.com/core v0.0.0-20210625145439-f0cf26f465ef
-	go.viam.com/utils v0.0.2-0.20210624205043-186988d9d955
-	golang.org/x/tools v0.1.3
+	go.uber.org/multierr v1.7.0
+	go.viam.com/core v0.0.0-20211222001551-9ed5b01421ed
+	go.viam.com/utils v0.0.3-0.20211221213406-998b88f05dc2
+	golang.org/x/tools v0.1.7
+	gonum.org/v1/netlib v0.0.0-20201012070519-2390d26c3658 // indirect
 )

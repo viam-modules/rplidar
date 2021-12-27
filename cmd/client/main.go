@@ -9,7 +9,8 @@ import (
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
 	"go.viam.com/core/grpc/client"
-	"go.viam.com/core/lidar"
+
+	//"go.viam.com/core/lidar"
 	"go.viam.com/core/rlog"
 	"go.viam.com/utils"
 )
@@ -46,21 +47,15 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 	if len(names) == 0 {
 		return errors.New("no lidar devices found")
 	}
-	lidarDevice := robotClient.LidarByName(names[0])
+	cameraDevice := robotClient.CameraByName(robotClient.CameraNames()[0])
 
-	if err := lidarDevice.Start(ctx); err != nil {
+	if err := cameraDevice.Start(ctx); err != nil {
 		return err
 	}
 
 	defer func() {
-		err = multierr.Combine(err, lidarDevice.Stop(context.Background()))
+		err = multierr.Combine(err, cameraDevice.Close())
 	}()
-
-	info, err := lidarDevice.Info(ctx)
-	if err != nil {
-		return err
-	}
-	logger.Infow("lidar", "info", info)
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
@@ -78,13 +73,13 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 		case <-ticker.C:
 		}
 
-		measurements, err := lidarDevice.Scan(context.Background(), lidar.ScanOptions{})
+		pc, err := cameraDevice.Scan(context.Background(), ScanOptions{})
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
 			}
 			return err
 		}
-		logger.Infow("scanned", "num_measurements", len(measurements))
+		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
 }

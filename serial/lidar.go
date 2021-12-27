@@ -4,33 +4,38 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image/color"
 	"math"
-	"sort"
 	"sync"
 	"time"
 
-	"go.viam.com/rplidar"
 	"go.viam.com/rplidar/gen"
 
 	"github.com/edaniels/golog"
-	"github.com/golang/geo/r2"
+	"github.com/golang/geo/r3"
+	"go.viam.com/core/component/camera"
 	"go.viam.com/core/config"
-	"go.viam.com/core/lidar"
+	"go.viam.com/core/pointcloud"
 	"go.viam.com/core/registry"
 	"go.viam.com/core/robot"
-	"go.viam.com/core/usb"
+	"go.viam.com/core/spatialmath"
+	"go.viam.com/core/utils"
 )
 
 func init() {
-	registry.RegisterLidar(rplidar.ModelName, func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (lidar.Lidar, error) {
-		return NewDevice(config.Host)
-	})
-	lidar.RegisterType(rplidar.Type, lidar.TypeRegistration{
-		USBInfo: &usb.Identifier{
-			Vendor:  0x10c4,
-			Product: 0xea60,
-		},
-	})
+	registry.RegisterComponent(camera.Subtype, "rplidar", registry.Component{Constructor: func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (interface{}, error) {
+		devicePath := config.Attributes.String("device_path")
+		if devicePath == "" {
+			return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
+		}
+		return NewDevice(devicePath)
+	}})
+	// camera.RegisterType(rplidar.Type, camera.TypeRegistration{
+	// 	USBInfo: &usb.Identifier{
+	// 		Vendor:  0x10c4,
+	// 		Product: 0xea60,
+	// 	},
+	// })
 }
 
 type (
@@ -174,13 +179,18 @@ type Device struct {
 	nodeSize    int
 	started     bool
 	scannedOnce bool
-	bounds      *r2.Point
+	bounds      *r3.Vector
 
 	// info
 	model            byte
 	serialNumber     string
 	firmwareVersion  string
 	hardwareRevision int
+}
+
+type ScanOptions struct {
+	// Count determines how many scans to perform.
+	Count int
 }
 
 // Info returns metadata about the device.
@@ -249,17 +259,17 @@ func (d *Device) filterParams() (minAngleDiff float64, maxDistDiff float64) {
 }
 
 // Bounds returns the square meter bounds of the device.
-func (d *Device) Bounds(ctx context.Context) (r2.Point, error) {
+func (d *Device) Bounds(ctx context.Context) (r3.Vector, error) {
 	if d.bounds != nil {
 		return *d.bounds, nil
 	}
 	r, err := d.Range(ctx)
 	if err != nil {
-		return r2.Point{}, err
+		return r3.Vector{}, err
 	}
 	width := r * 2
 	height := width
-	bounds := r2.Point{width, height}
+	bounds := r3.Vector{width, height, 1}
 	d.bounds = &bounds
 	return bounds, nil
 }
@@ -302,13 +312,13 @@ func (d *Device) Close(ctx context.Context) error {
 const defaultNumScans = 3
 
 // Scan performs a scan on the device and performs some filtering to clean up the data.
-func (d *Device) Scan(ctx context.Context, options lidar.ScanOptions) (lidar.Measurements, error) {
+func (d *Device) Scan(ctx context.Context, sopt ScanOptions) (pointcloud.PointCloud, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.scan(options)
+	return d.scan(ctx, sopt)
 }
 
-func (d *Device) scan(options lidar.ScanOptions) (lidar.Measurements, error) {
+func (d *Device) scan(ctx context.Context, sopt ScanOptions) (pointcloud.PointCloud, error) {
 	if !d.started {
 		d.start()
 		d.started = true
@@ -317,18 +327,20 @@ func (d *Device) scan(options lidar.ScanOptions) (lidar.Measurements, error) {
 		d.scannedOnce = true
 		// discard scans for warmup
 		//nolint
-		d.scan(lidar.ScanOptions{Count: 10})
+		sopt.Count = 10
+		d.scan(ctx, sopt)
 		time.Sleep(time.Second)
 	}
 
-	numScans := defaultNumScans
-	if options.Count != 0 {
-		numScans = options.Count
+	numScans := defaultNumScans // 3
+	if sopt.Count != 0 {
+		numScans = sopt.Count
 	}
-	// numScans = 1
 
 	nodeCount := int64(d.nodeSize)
-	measurements := make(lidar.Measurements, 0, nodeCount*int64(numScans))
+	//measurements := make(lidar.Measurements, 0, nodeCount*int64(numScans))
+
+	pc := pointcloud.New()
 
 	var dropCount int
 	for i := 0; i < numScans; i++ {
@@ -348,40 +360,66 @@ func (d *Device) scan(options lidar.ScanOptions) (lidar.Measurements, error) {
 
 			nodeAngle := (float64(node.GetAngle_z_q14()) * 90 / (1 << 14))
 			nodeDistance := float64(node.GetDist_mm_q2()) / 4
-			measurements = append(measurements, lidar.NewMeasurement(nodeAngle, nodeDistance/1000))
-		}
-	}
-	if len(measurements) == 0 {
-		return nil, nil
-	}
-	if options.NoFilter {
-		return measurements, nil
-	}
-	sort.Stable(measurements)
-	filteredMeasurements := make(lidar.Measurements, 0, len(measurements))
 
-	minAngleDiff, maxDistDiff := d.filterParams()
-	prev := measurements[0]
-	detectedRay := false
-	for mIdx := 1; mIdx < len(measurements); mIdx++ {
-		curr := measurements[mIdx]
-		currAngle := curr.AngleDeg()
-		prevAngle := prev.AngleDeg()
-		currDist := curr.Distance()
-		prevDist := prev.Distance()
-		if math.Abs(currAngle-prevAngle) < minAngleDiff {
-			if math.Abs(currDist-prevDist) > maxDistDiff {
-				detectedRay = true
-				continue
+			err := pc.Set(pointFrom(utils.DegToRad(nodeAngle), utils.DegToRad(0), float64(nodeDistance)/1000, 255))
+			if err != nil {
+				return nil, err
 			}
 		}
-		prev = curr
-		if !detectedRay {
-			filteredMeasurements = append(filteredMeasurements, curr)
-		}
-		detectedRay = false
 	}
-	return filteredMeasurements, nil
+	if pc.Size() == 0 {
+		return nil, nil
+	}
+
+	return pc, pc.WriteToFile("bar.las")
+
+	// if options.NoFilter {
+	// 	return measurements, nil
+	// }
+	// sort.Stable(measurements)
+	// filteredMeasurements := make(lidar.Measurements, 0, len(measurements))
+
+	// minAngleDiff, maxDistDiff := d.filterParams()
+	// prev := measurements[0]
+	// detectedRay := false
+	// for mIdx := 1; mIdx < len(measurements); mIdx++ {
+	// 	curr := measurements[mIdx]
+	// 	currAngle := curr.AngleDeg()
+	// 	prevAngle := prev.AngleDeg()
+	// 	currDist := curr.Distance()
+	// 	prevDist := prev.Distance()
+	// 	if math.Abs(currAngle-prevAngle) < minAngleDiff {
+	// 		if math.Abs(currDist-prevDist) > maxDistDiff {
+	// 			detectedRay = true
+	// 			continue
+	// 		}
+	// 	}
+	// 	prev = curr
+	// 	if !detectedRay {
+	// 		filteredMeasurements = append(filteredMeasurements, curr)
+	// 	}
+	// 	detectedRay = false
+	// }
+	// return filteredMeasurements, nil
+}
+
+func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Point {
+	ea := spatialmath.NewEulerAngles()
+	ea.Yaw = yaw
+	ea.Pitch = pitch
+
+	pose1 := spatialmath.NewPoseFromOrientation(r3.Vector{0, 0, 0}, ea)
+	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{distance, 0, 0})
+	p := spatialmath.Compose(pose1, pose2).Point()
+
+	//fmt.Printf("Reflectivity = %v | Type = %T | GoRep = %#v \n", reflectivity, reflectivity, reflectivity)
+
+	pc := pointcloud.NewBasicPoint(p.X*1000, p.Y*1000, p.Z*1000).SetIntensity(uint16(reflectivity) * 255)
+	pc = pc.SetColor(color.NRGBA{255, 0, 0, 255})
+
+	//fmt.Printf(" PC: X = %v | Y = %v | Z = %v \n", p.X, p.Y, p.Z)
+
+	return pc
 }
 
 // AngularResolution returns the highest angular resolution the device offers.
