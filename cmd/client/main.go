@@ -8,10 +8,10 @@ import (
 
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
-	"go.viam.com/core/grpc/client"
+	"go.viam.com/rdk/grpc/client"
 
 	//"go.viam.com/core/lidar"
-	"go.viam.com/core/rlog"
+	"go.viam.com/rdk/rlog"
 	"go.viam.com/utils"
 )
 
@@ -36,26 +36,23 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
-	robotClient, err := client.NewClient(ctx, deviceAddress, logger)
+	robotClient, err := client.New(ctx, deviceAddress, logger)
 	if err != nil {
 		return err
 	}
 	defer func() {
-		err = multierr.Combine(err, robotClient.Close())
+		err = multierr.Combine(err, robotClient.Close(ctx))
 	}()
-	names := robotClient.LidarNames()
-	if len(names) == 0 {
-		return errors.New("no lidar devices found")
-	}
-	cameraDevice := robotClient.CameraByName(robotClient.CameraNames()[0])
 
-	if err := cameraDevice.Start(ctx); err != nil {
-		return err
-	}
+	cameraDevice, _ := robotClient.CameraByName(robotClient.CameraNames()[0])
 
-	defer func() {
-		err = multierr.Combine(err, cameraDevice.Close())
-	}()
+	// if err := cameraDevice.Start(ctx); err != nil {
+	// 	return err
+	// }
+
+	// defer func() {
+	// 	err = multierr.Combine(err, cameraDevice.Stop())
+	// }()
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
@@ -73,7 +70,7 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 		case <-ticker.C:
 		}
 
-		pc, err := cameraDevice.Scan(context.Background(), ScanOptions{})
+		pc, err := cameraDevice.NextPointCloud(context.Background())
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil

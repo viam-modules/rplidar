@@ -13,13 +13,14 @@ import (
 
 	"github.com/edaniels/golog"
 	"github.com/golang/geo/r3"
-	"go.viam.com/core/component/camera"
-	"go.viam.com/core/config"
-	"go.viam.com/core/pointcloud"
-	"go.viam.com/core/registry"
-	"go.viam.com/core/robot"
-	"go.viam.com/core/spatialmath"
-	"go.viam.com/core/utils"
+	"go.viam.com/rdk/component/camera"
+	"go.viam.com/rdk/config"
+	"go.viam.com/rdk/pointcloud"
+	"go.viam.com/rdk/registry"
+	"go.viam.com/rdk/robot"
+	"go.viam.com/rdk/spatialmath"
+	"go.viam.com/rdk/utils"
+	gutils "go.viam.com/utils"
 )
 
 func init() {
@@ -161,14 +162,23 @@ func NewDevice(devicePath string) (*Device, error) {
 		return nil, errors.New("bad health")
 	}
 
-	return &Device{
+	d := &Device{
 		driver:           driver,
 		nodeSize:         8192,
 		model:            devInfo.GetModel(),
 		serialNumber:     serialNumStr,
 		firmwareVersion:  firmwareVer,
 		hardwareRevision: hardwareRev,
-	}, nil
+	}
+
+	cancelCtx, _ := context.WithCancel(context.Background())
+
+	gutils.PanicCapturingGo(func() {
+		defer d.Stop(cancelCtx)
+		d.Start(cancelCtx)
+	})
+
+	return d, nil
 }
 
 // Device controls an RPLidar device.
@@ -312,13 +322,13 @@ func (d *Device) Close(ctx context.Context) error {
 const defaultNumScans = 3
 
 // Scan performs a scan on the device and performs some filtering to clean up the data.
-func (d *Device) Scan(ctx context.Context, sopt ScanOptions) (pointcloud.PointCloud, error) {
+func (d *Device) Next(ctx context.Context) (pointcloud.PointCloud, func(), error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.scan(ctx, sopt)
+	return d.scan(ctx)
 }
 
-func (d *Device) scan(ctx context.Context, sopt ScanOptions) (pointcloud.PointCloud, error) {
+func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, func(), error) {
 	if !d.started {
 		d.start()
 		d.started = true
@@ -327,15 +337,15 @@ func (d *Device) scan(ctx context.Context, sopt ScanOptions) (pointcloud.PointCl
 		d.scannedOnce = true
 		// discard scans for warmup
 		//nolint
-		sopt.Count = 10
-		d.scan(ctx, sopt)
+		//sopt.Count = 10
+		d.scan(ctx)
 		time.Sleep(time.Second)
 	}
 
 	numScans := defaultNumScans // 3
-	if sopt.Count != 0 {
-		numScans = sopt.Count
-	}
+	//if sopt.Count != 0 {
+	//	numScans = sopt.Count
+	//}
 
 	nodeCount := int64(d.nodeSize)
 	//measurements := make(lidar.Measurements, 0, nodeCount*int64(numScans))
@@ -347,7 +357,7 @@ func (d *Device) scan(ctx context.Context, sopt ScanOptions) (pointcloud.PointCl
 		nodeCount = int64(d.nodeSize)
 		result := d.driver.GrabScanDataHq(d.nodes, &nodeCount, defaultTimeout)
 		if Result(result) != ResultOk {
-			return nil, fmt.Errorf("bad scan: %w", Result(result).Failed())
+			return nil, nil, fmt.Errorf("bad scan: %w", Result(result).Failed())
 		}
 		d.driver.AscendScanData(d.nodes, nodeCount)
 
@@ -363,15 +373,15 @@ func (d *Device) scan(ctx context.Context, sopt ScanOptions) (pointcloud.PointCl
 
 			err := pc.Set(pointFrom(utils.DegToRad(nodeAngle), utils.DegToRad(0), float64(nodeDistance)/1000, 255))
 			if err != nil {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 	}
 	if pc.Size() == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
-	return pc, pc.WriteToFile("bar.las")
+	return pc, nil, pc.WriteToFile("bar.las")
 
 	// if options.NoFilter {
 	// 	return measurements, nil

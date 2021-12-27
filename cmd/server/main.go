@@ -12,15 +12,16 @@ import (
 
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
-	"go.viam.com/core/config"
-	grpcserver "go.viam.com/core/grpc/server"
+	"go.viam.com/rdk/config"
+	grpcserver "go.viam.com/rdk/grpc/server"
+	"go.viam.com/rdk/serial"
 
 	//"go.viam.com/core/lidar/search"
 	pb "go.viam.com/core/proto/api/v1"
 	"go.viam.com/core/rlog"
-	robotimpl "go.viam.com/core/robot/impl"
+	robotimpl "go.viam.com/rdk/robot/impl"
 	"go.viam.com/utils"
-	//rpcserver "go.viam.com/utils/rpc/server"
+	rpcserver "go.viam.com/utils/rpc"
 )
 
 func main() {
@@ -47,27 +48,31 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
 	}
 
-	lidarComponents := search.Devices()
+	filter := serial.SearchFilter{Type: serial.TypeUnknown} //usb.NewSearchFilter()
+	lidarComponents := serial.Search(filter)
 	if len(lidarComponents) != 0 {
 		golog.Global.Debugf("detected %d lidar devices", len(lidarComponents))
 		for _, comp := range lidarComponents {
 			golog.Global.Debug(comp)
 		}
 	}
+
+	lidarDevices := []config.Component{}
+
 	if argsParsed.DevicePath != "" {
-		lidarComponents = []config.Component{{Type: config.ComponentTypeLidar, Model: rplidar.ModelName, Host: argsParsed.DevicePath}}
+		lidarDevices = []config.Component{{Type: config.ComponentTypeCamera, Model: rplidar.ModelName, Host: argsParsed.DevicePath}}
 	}
 
-	if len(lidarComponents) == 0 {
+	if len(lidarDevices) == 0 {
 		return errors.New("no lidar devices found")
 	}
 
-	lidarComponent := lidarComponents[0]
-	if lidarComponent.Model != rplidar.ModelName {
+	lidarDevice := lidarDevices[0]
+	if lidarDevice.Model != rplidar.ModelName {
 		return errors.New("device is not rplidar")
 	}
 
-	return runServer(ctx, int(argsParsed.Port), lidarComponent, logger)
+	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)
 }
 
 func runServer(ctx context.Context, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
@@ -75,23 +80,19 @@ func runServer(ctx context.Context, port int, lidarComponent config.Component, l
 	if err != nil {
 		return err
 	}
-	cameraDevice, _ := r.CameraByName(r.CameraNames()[0])
 
-	info, err := cameraDevice.Info(ctx)
-	if err != nil {
-		return err
-	}
-	golog.Global.Infow("rplidar", "info", info)
-	defer func() {
-		err = multierr.Combine(err, cameraDevice.Close())
-	}()
+	//cameraDevice, _ := r.CameraByName(r.CameraNames()[0])
+
+	// defer func() {
+	// 	err = multierr.Combine(err, cameraDevice.Close(ctx))
+	// }()
 
 	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
 		return err
 	}
 
-	rpcServer, err := rpcserver.New(logger)
+	rpcServer, err := rpcserver.NewServer(logger)
 	if err != nil {
 		return err
 	}
