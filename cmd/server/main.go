@@ -3,28 +3,21 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
-	"net"
-	"time"
 
+	"go.viam.com/rdk/services/web"
 	"go.viam.com/rplidar"
 
 	"github.com/edaniels/golog"
-	"go.uber.org/multierr"
-	"go.viam.com/rdk/component/camera"
 	"go.viam.com/rdk/config"
-	"go.viam.com/rdk/resource"
+	"go.viam.com/rdk/metadata/service"
 	"go.viam.com/rdk/rlog"
 	"go.viam.com/rdk/usb"
 	"go.viam.com/utils"
 
-	grpcserver "go.viam.com/rdk/grpc/server"
-	componentpb "go.viam.com/rdk/proto/api/component/v1"
-	pb "go.viam.com/rdk/proto/api/v1"
+	"go.viam.com/rdk/grpc/client"
 	robotimpl "go.viam.com/rdk/robot/impl"
-	"go.viam.com/rdk/subtype"
+	webserver "go.viam.com/rdk/web/server"
 	"go.viam.com/utils/rpc"
-	rpcserver "go.viam.com/utils/rpc"
 
 	_ "go.viam.com/rplidar/serial" //register
 )
@@ -69,6 +62,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	//filter := serial.SearchFilter{} //Type: serial.TypeUnknown usb.NewSearchFilter()
 	//lidarComponents := serial.Search(filter)
 	//fmt.Printf("Serial DEVICES: %v \n", lidarComponents)
+
 	if len(usbDevices) != 0 {
 		golog.Global.Debugf("detected %d lidar devices", len(usbDevices))
 		for _, comp := range usbDevices {
@@ -81,9 +75,9 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	lidarDevices := []config.Component{}
 
 	if argsParsed.DevicePath != "" {
-		lidarDevices = []config.Component{{Type: config.ComponentTypeCamera, Model: rplidar.ModelName, Host: argsParsed.DevicePath, Name: "fuckinganything"}}
+		lidarDevices = []config.Component{{Type: config.ComponentTypeCamera, Model: rplidar.ModelName, Attributes: config.AttributeMap{"Host": argsParsed.DevicePath}, Name: "rplidar"}}
 	} else {
-		lidarDevices = []config.Component{{Type: config.ComponentTypeCamera, Model: rplidar.ModelName, Host: "/dev/ttyUSB0", Name: "fuckinganything"}}
+		lidarDevices = []config.Component{{Type: config.ComponentTypeCamera, Model: rplidar.ModelName, Attributes: config.AttributeMap{"Host": "/dev/ttyUSB0"}, Name: "rplidar"}}
 	}
 
 	if len(lidarDevices) == 0 {
@@ -99,102 +93,121 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runServer(ctx context.Context, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
-	r, err := robotimpl.New(ctx, &config.Config{Components: []config.Component{lidarComponent}}, logger)
+
+	metadataSvc, err := service.New()
 	if err != nil {
 		return err
 	}
-	fmt.Println(lidarComponent)
-	cameraDevice, ok := r.CameraByName(r.CameraNames()[0])
-	if !ok {
-		// some error
-		panic("wtf")
-	}
+	ctx = service.ContextWithService(ctx, metadataSvc)
 
-	defer func() {
-		closeableCamera, ok := cameraDevice.(closeable)
-		if !ok {
-			// some error
-			panic("wtf2")
-		} else {
-			closeableCamera.Close(ctx)
-		}
-	}()
-
-	fmt.Println("HEYHO THE WATCHER GOES")
-
-	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	cfg := &config.Config{Components: []config.Component{lidarComponent}}
+	myRobot, err := robotimpl.New(ctx, cfg, logger, client.WithDialOptions(rpc.WithInsecure()))
 	if err != nil {
 		return err
 	}
+	defer myRobot.Close(ctx)
 
-	rpcServer, err := rpcserver.NewServer(logger, rpc.WithUnauthenticated())
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = multierr.Combine(err, rpcServer.Stop())
-	}()
-
-	robotServer := grpcserver.New(r)
-	fmt.Println(robotServer.Config(context.Background(), &pb.ConfigRequest{}))
-
-	if err := rpcServer.RegisterServiceServer(
-		ctx,
-		&pb.RobotService_ServiceDesc,
-		grpcserver.New(r),
-		pb.RegisterRobotServiceHandlerFromEndpoint,
-	); err != nil {
-		return err
-	}
-
-	cameras := map[resource.Name]interface{}{
-		camera.Named("fuckinganything"): cameraDevice,
-	}
-	stype, err := subtype.New(cameras)
-	if err != nil {
-		return err
-	}
-
-	if err := rpcServer.RegisterServiceServer(
-		ctx,
-		&componentpb.CameraService_ServiceDesc,
-		camera.NewServer(stype),
-		componentpb.RegisterCameraServiceHandlerFromEndpoint,
-	); err != nil {
-		return err
-	}
-
-	go func() {
-		<-ctx.Done()
-		if err := rpcServer.Stop(); err != nil {
-			panic(err)
-		}
-
-	}()
-
-	//fmt.Println("HEYHO THE WATCHER GOES")
-
-	utils.ContextMainReadyFunc(ctx)()
-	err = rpcServer.Serve(listener)
-	fmt.Printf("Error: %v \n", err)
-	if err != nil {
-		return err
-	}
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		err := ctx.Err()
-		if err != nil {
-			// cancelled
-			return err
-		}
-
-		if !utils.SelectContextOrWait(ctx, time.Second) {
-			return nil
-		}
-	}
+	options := web.NewOptions()
+	options.Network = config.NetworkConfig{BindAddress: ":4444"}
+	return webserver.RunWeb(ctx, myRobot, options, logger)
 }
+
+// 	r, err := robotimpl.New(ctx, &config.Config{Components: []config.Component{lidarComponent}}, logger)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	fmt.Println(lidarComponent)
+// 	cameraDevice, ok := r.CameraByName(r.CameraNames()[0])
+// 	if !ok {
+// 		// some error
+// 		panic("wtf")
+// 	}
+
+// 	defer func() {
+// 		closeableCamera, ok := cameraDevice.(closeable)
+// 		if !ok {
+// 			// some error
+// 			panic("wtf2")
+// 		} else {
+// 			closeableCamera.Close(ctx)
+// 		}
+// 	}()
+
+// 	fmt.Println("HEYHO THE WATCHER GOES")
+
+// 	listener, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+// 	if err != nil {
+// 		return err
+// 	}
+
+// 	rpcServer, err := rpcserver.NewServer(logger, rpc.WithUnauthenticated())
+// 	if err != nil {
+// 		return err
+// 	}
+// 	defer func() {
+// 		err = multierr.Combine(err, rpcServer.Stop())
+// 	}()
+
+// 	robotServer := grpcserver.New(r)
+// 	fmt.Println(robotServer.Config(context.Background(), &pb.ConfigRequest{}))
+
+// 	if err := rpcServer.RegisterServiceServer(
+// 		ctx,
+// 		&pb.RobotService_ServiceDesc,
+// 		grpcserver.New(r),
+// 		pb.RegisterRobotServiceHandlerFromEndpoint,
+// 	); err != nil {
+// 		return err
+// 	}
+
+// 	// cameras := map[resource.Name]interface{}{
+// 	// 	camera.Named("fuckinganything"): cameraDevice,
+// 	// }
+// 	// stype, err := subtype.New(cameras)
+// 	// if err != nil {
+// 	// 	return err
+// 	// }
+
+// 	// if err := rpcServer.RegisterServiceServer(
+// 	// 	ctx,
+// 	// 	&componentpb.CameraService_ServiceDesc,
+// 	// 	camera.NewServer(stype),
+// 	// 	componentpb.RegisterCameraServiceHandlerFromEndpoint,
+// 	// ); err != nil {
+// 	// 	return err
+// 	// }
+
+// 	go func() {
+// 		<-ctx.Done()
+// 		if err := rpcServer.Stop(); err != nil {
+// 			panic(err)
+// 		}
+
+// 	}()
+
+// 	//fmt.Println("HEYHO THE WATCHER GOES")
+
+// 	utils.ContextMainReadyFunc(ctx)()
+// 	err = rpcServer.Serve(listener)
+// 	fmt.Printf("Error: %v \n", err)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	for {
+// 		select {
+// 		case <-ctx.Done():
+// 			return ctx.Err()
+// 		default:
+// 		}
+
+// 		err := ctx.Err()
+// 		if err != nil {
+// 			// cancelled
+// 			return err
+// 		}
+
+// 		if !utils.SelectContextOrWait(ctx, time.Second) {
+// 			return nil
+// 		}
+// 	}
+// }

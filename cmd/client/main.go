@@ -10,15 +10,18 @@ import (
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
 
+	"go.viam.com/rdk/component/camera"
+	_ "go.viam.com/rdk/component/camera/register"
 	"go.viam.com/rdk/grpc/client"
+	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/rlog"
 	"go.viam.com/utils"
 	"go.viam.com/utils/rpc"
 )
 
-type closeable interface {
-	Close() error
-}
+// type closeable interface {
+// 	Close() error
+// }
 
 func main() {
 	utils.ContextualMain(mainWithArgs, logger)
@@ -41,7 +44,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
-	fmt.Println(deviceAddress)
+	fmt.Printf("deviceAddress: %v\n", deviceAddress)
 	robotClient, err := client.New(ctx, deviceAddress, logger, client.WithDialOptions(rpc.WithInsecure()))
 
 	if err != nil {
@@ -50,14 +53,21 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 	defer func() {
 		err = multierr.Combine(err, robotClient.Close(ctx))
 	}()
-	robotClient.Refresh(ctx)
-	fmt.Println(robotClient.ResourceNames())
-	fmt.Println(robotClient)
 
-	fmt.Println("fuck")
-	fmt.Println(robotClient.CameraByName("fuckinganything"))
+	fmt.Printf("ResourceNames: %v \n", robotClient.ResourceNames())
+	fmt.Printf("CameraNames: %v \n", robotClient.CameraNames())
+	fmt.Printf("CameraDevice: %v \n", robotClient.CameraNames()[0])
+	fmt.Printf("robotClient: %v \n", robotClient)
+	name := camera.Named(robotClient.CameraNames()[0])
+	fmt.Printf("camera named: %v \n", name)
+	fmt.Printf("subtype named: %v \n", name.Subtype)
+	fmt.Printf("registry: %v \n", registry.ResourceSubtypeLookup(name.Subtype))
 
-	cameraDevice, _ := robotClient.CameraByName(robotClient.CameraNames()[0])
+	cameraDevice, ok := robotClient.CameraByName(robotClient.CameraNames()[0])
+	if !ok {
+		return fmt.Errorf("failure to find component, nil pointer")
+	}
+	fmt.Println(cameraDevice)
 
 	fmt.Println("HEYHO THE SEEKER COMES")
 
