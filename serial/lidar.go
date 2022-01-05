@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"image"
 	"image/color"
 	"math"
 	"sync"
@@ -27,8 +28,10 @@ func init() {
 	registry.RegisterComponent(camera.Subtype, "rplidar", registry.Component{Constructor: func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (interface{}, error) {
 		devicePath := config.Attributes.String("device_path")
 		if devicePath == "" {
-			return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
+			//return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
+			devicePath = "/dev/ttyUSB0"
 		}
+		fmt.Println("REGISTER")
 		return NewDevice(devicePath)
 	}})
 	// camera.RegisterType(rplidar.Type, camera.TypeRegistration{
@@ -104,7 +107,7 @@ func (r ResultError) Error() string {
 const defaultTimeout = uint(1000)
 
 // NewDevice returns a new RPLidar device at the given path.
-func NewDevice(devicePath string) (*Device, error) {
+func NewDevice(devicePath string) (camera.Camera, error) {
 	var driver gen.RPlidarDriver
 	devInfo := gen.NewRplidar_response_device_info_t()
 	defer gen.DeleteRplidar_response_device_info_t(devInfo)
@@ -162,6 +165,8 @@ func NewDevice(devicePath string) (*Device, error) {
 		return nil, errors.New("bad health")
 	}
 
+	cancelCtx, cancelFunc := context.WithCancel(context.Background())
+
 	d := &Device{
 		driver:           driver,
 		nodeSize:         8192,
@@ -171,11 +176,23 @@ func NewDevice(devicePath string) (*Device, error) {
 		hardwareRevision: hardwareRev,
 	}
 
-	cancelCtx, _ := context.WithCancel(context.Background())
+	d.cancelFunc = cancelFunc
+	d.activeBackgroundWorkers.Add(1)
+
+	err := d.Start(cancelCtx)
+	if err != nil {
+		return nil, fmt.Errorf("error on startup of rplidar %v", err)
+	}
 
 	gutils.PanicCapturingGo(func() {
-		defer d.Stop(cancelCtx)
-		d.Start(cancelCtx)
+		//defer d.Stop(cancelCtx)
+
+		//d.Start(cancelCtx)
+		//err := d.Start(cancelCtx)
+
+		if err == nil {
+			d.run(cancelCtx)
+		}
 	})
 
 	return d, nil
@@ -196,6 +213,9 @@ type Device struct {
 	serialNumber     string
 	firmwareVersion  string
 	hardwareRevision int
+
+	cancelFunc              func()
+	activeBackgroundWorkers sync.WaitGroup
 }
 
 type ScanOptions struct {
@@ -211,6 +231,30 @@ func (d *Device) Info(ctx context.Context) (map[string]interface{}, error) {
 		"firmware_version":  d.firmwareVersion,
 		"hardware_revision": d.hardwareRevision,
 	}, nil
+}
+
+func (d *Device) run(ctx context.Context) error {
+	defer d.activeBackgroundWorkers.Done()
+	defer d.Stop(ctx)
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+
+		err := ctx.Err()
+		if err != nil {
+			// cancelled
+			return err
+		}
+
+		if !gutils.SelectContextOrWait(ctx, time.Second) {
+			return nil
+		}
+
+	}
 }
 
 // SerialNumber returns the serial number of the device.
@@ -293,6 +337,8 @@ func (d *Device) Start(ctx context.Context) error {
 }
 
 func (d *Device) start() {
+	golog.Global.Debugf("starting motor")
+
 	d.started = true
 	d.driver.StartMotor()
 	d.driver.StartScan(false, true)
@@ -303,32 +349,35 @@ func (d *Device) start() {
 func (d *Device) Stop(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+
 	if d.nodes != nil {
 		defer func() {
 			gen.Delete_measurementNodeHqArray(d.nodes)
 			d.nodes = nil
 		}()
 	}
+	golog.Global.Debugf("stopping motor")
+
 	d.driver.Stop()
 	d.driver.StopMotor()
 	return nil
 }
 
 // Close just stops the device.
-func (d *Device) Close(ctx context.Context) error {
-	return d.Stop(ctx)
-}
+// func (d *Device) Close(ctx context.Context) error {
+// 	return d.Stop(ctx)
+// }
 
 const defaultNumScans = 3
 
 // Scan performs a scan on the device and performs some filtering to clean up the data.
-func (d *Device) Next(ctx context.Context) (pointcloud.PointCloud, func(), error) {
+func (d *Device) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	return d.scan(ctx)
 }
 
-func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, func(), error) {
+func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
 	if !d.started {
 		d.start()
 		d.started = true
@@ -357,7 +406,7 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, func(), error
 		nodeCount = int64(d.nodeSize)
 		result := d.driver.GrabScanDataHq(d.nodes, &nodeCount, defaultTimeout)
 		if Result(result) != ResultOk {
-			return nil, nil, fmt.Errorf("bad scan: %w", Result(result).Failed())
+			return nil, fmt.Errorf("bad scan: %w", Result(result).Failed())
 		}
 		d.driver.AscendScanData(d.nodes, nodeCount)
 
@@ -373,15 +422,15 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, func(), error
 
 			err := pc.Set(pointFrom(utils.DegToRad(nodeAngle), utils.DegToRad(0), float64(nodeDistance)/1000, 255))
 			if err != nil {
-				return nil, nil, err
+				return nil, err
 			}
 		}
 	}
 	if pc.Size() == 0 {
-		return nil, nil, nil
+		return nil, nil
 	}
 
-	return pc, nil, pc.WriteToFile("bar.las")
+	return pc, pc.WriteToFile("bar.las")
 
 	// if options.NoFilter {
 	// 	return measurements, nil
@@ -442,4 +491,63 @@ func (d *Device) AngularResolution(ctx context.Context) (float64, error) {
 	default:
 		return 1, nil
 	}
+}
+
+func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
+	pc, err := d.NextPointCloud(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	minX := 0.0
+	minY := 0.0
+
+	maxX := 0.0
+	maxY := 0.0
+
+	pc.Iterate(func(p pointcloud.Point) bool {
+		pos := p.Position()
+		minX = math.Min(minX, pos.X)
+		maxX = math.Max(maxX, pos.X)
+		minY = math.Min(minY, pos.Y)
+		maxY = math.Max(maxY, pos.Y)
+		return true
+	})
+
+	width := 800
+	height := 800
+
+	scale := func(x, y float64) (int, int) {
+		return int(float64(width) * ((x - minX) / (maxX - minX))),
+			int(float64(height) * ((y - minY) / (maxY - minY)))
+	}
+
+	img := image.NewNRGBA(image.Rect(0, 0, width, height))
+
+	set := func(xpc, ypc float64, clr color.NRGBA) {
+		x, y := scale(xpc, ypc)
+		img.SetNRGBA(x, y, clr)
+	}
+
+	pc.Iterate(func(p pointcloud.Point) bool {
+		set(p.Position().X, p.Position().Y, color.NRGBA{255, 0, 0, 255})
+		return true
+	})
+
+	centerSize := .1
+	for x := -1 * centerSize; x < centerSize; x += .01 {
+		for y := -1 * centerSize; y < centerSize; y += .01 {
+			set(x, y, color.NRGBA{0, 255, 0, 255})
+		}
+	}
+
+	return img, nil, nil
+
+}
+
+func (d *Device) Close(ctx context.Context) error {
+	fmt.Println("WHY ARE YOU CLOSING HAHAHAHAHA")
+	d.cancelFunc()
+	d.activeBackgroundWorkers.Wait()
+	return nil
 }

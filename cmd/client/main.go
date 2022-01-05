@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
@@ -12,7 +13,12 @@ import (
 	"go.viam.com/rdk/grpc/client"
 	"go.viam.com/rdk/rlog"
 	"go.viam.com/utils"
+	"go.viam.com/utils/rpc"
 )
+
+type closeable interface {
+	Close() error
+}
 
 func main() {
 	utils.ContextualMain(mainWithArgs, logger)
@@ -35,23 +41,25 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
-	robotClient, err := client.New(ctx, deviceAddress, logger)
+	fmt.Println(deviceAddress)
+	robotClient, err := client.New(ctx, deviceAddress, logger, client.WithDialOptions(rpc.WithInsecure()))
+
 	if err != nil {
 		return err
 	}
 	defer func() {
 		err = multierr.Combine(err, robotClient.Close(ctx))
 	}()
+	robotClient.Refresh(ctx)
+	fmt.Println(robotClient.ResourceNames())
+	fmt.Println(robotClient)
+
+	fmt.Println("fuck")
+	fmt.Println(robotClient.CameraByName("fuckinganything"))
 
 	cameraDevice, _ := robotClient.CameraByName(robotClient.CameraNames()[0])
 
-	// if err := cameraDevice.Start(ctx); err != nil {
-	// 	return err
-	// }
-
-	// defer func() {
-	// 	err = multierr.Combine(err, cameraDevice.Stop())
-	// }()
+	fmt.Println("HEYHO THE SEEKER COMES")
 
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
