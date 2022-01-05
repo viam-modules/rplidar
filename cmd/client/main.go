@@ -10,15 +10,16 @@ import (
 	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
 
+	_ "go.viam.com/rdk/component/camera/register"
 	"go.viam.com/rdk/grpc/client"
 	"go.viam.com/rdk/rlog"
 	"go.viam.com/utils"
 	"go.viam.com/utils/rpc"
 )
 
-type closeable interface {
-	Close() error
-}
+// type closeable interface {
+// 	Close() error
+// }
 
 func main() {
 	utils.ContextualMain(mainWithArgs, logger)
@@ -41,7 +42,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
-	fmt.Println(deviceAddress)
+	fmt.Printf("deviceAddress: %v\n", deviceAddress)
 	robotClient, err := client.New(ctx, deviceAddress, logger, client.WithDialOptions(rpc.WithInsecure()))
 
 	if err != nil {
@@ -50,18 +51,14 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 	defer func() {
 		err = multierr.Combine(err, robotClient.Close(ctx))
 	}()
-	robotClient.Refresh(ctx)
-	fmt.Println(robotClient.ResourceNames())
-	fmt.Println(robotClient)
 
-	fmt.Println("fuck")
-	fmt.Println(robotClient.CameraByName("fuckinganything"))
+	cameraDevice, ok := robotClient.CameraByName(robotClient.CameraNames()[0])
+	if !ok {
+		return fmt.Errorf("failure to find component")
+	}
+	fmt.Println(cameraDevice)
 
-	cameraDevice, _ := robotClient.CameraByName(robotClient.CameraNames()[0])
-
-	fmt.Println("HEYHO THE SEEKER COMES")
-
-	ticker := time.NewTicker(time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	utils.ContextMainReadyFunc(ctx)()
 	for {

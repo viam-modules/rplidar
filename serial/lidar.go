@@ -28,10 +28,12 @@ func init() {
 	registry.RegisterComponent(camera.Subtype, "rplidar", registry.Component{Constructor: func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (interface{}, error) {
 		devicePath := config.Attributes.String("device_path")
 		if devicePath == "" {
-			//return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
-			devicePath = "/dev/ttyUSB0"
+			return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
 		}
-		fmt.Println("REGISTER")
+		//devicePath = "/dev/ttyUSB0"
+		// } else {
+		// 	fmt.Println(devicePath)
+		// }
 		return NewDevice(devicePath)
 	}})
 	// camera.RegisterType(rplidar.Type, camera.TypeRegistration{
@@ -546,7 +548,6 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 }
 
 func (d *Device) Close(ctx context.Context) error {
-	fmt.Println("WHY ARE YOU CLOSING HAHAHAHAHA")
 	d.cancelFunc()
 	d.activeBackgroundWorkers.Wait()
 	return nil
