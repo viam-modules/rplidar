@@ -1,0 +1,16 @@
+{
+    "remotes": [
+        {
+            "name": "rplidar",
+            "address": "localhost:4444"
+        }
+    ],
+    "processes": [
+        {
+            "id": "rplidar_process",
+            "name": "/home/jeremyhyde-viam/rplidar/main",
+            "cwd": "/home/jeremyhyde-viam/rplidar",
+            "log": true
+        }
+    ]
+}

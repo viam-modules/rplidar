@@ -17,10 +17,6 @@ import (
 	"go.viam.com/utils/rpc"
 )
 
-// type closeable interface {
-// 	Close() error
-// }
-
 func main() {
 	utils.ContextualMain(mainWithArgs, logger)
 }
@@ -42,25 +38,26 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
-	fmt.Printf("deviceAddress: %v\n", deviceAddress)
-	robotClient, err := client.New(ctx, deviceAddress, logger, client.WithDialOptions(rpc.WithInsecure()))
 
+	robotClient, err := client.New(ctx, deviceAddress, logger, client.WithDialOptions(rpc.WithInsecure()))
 	if err != nil {
 		return err
 	}
+
 	defer func() {
 		err = multierr.Combine(err, robotClient.Close(ctx))
 	}()
 
 	cameraDevice, ok := robotClient.CameraByName(robotClient.CameraNames()[0])
 	if !ok {
-		return fmt.Errorf("failure to find component")
+		return fmt.Errorf("failed to find component")
 	}
-	fmt.Println(cameraDevice)
 
+	// Run loop
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 	utils.ContextMainReadyFunc(ctx)()
+
 	for {
 		select {
 		case <-ctx.Done():

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.viam.com/rdk/services/web"
 	"go.viam.com/rplidar"
@@ -18,8 +19,6 @@ import (
 	robotimpl "go.viam.com/rdk/robot/impl"
 	webserver "go.viam.com/rdk/web/server"
 	"go.viam.com/utils/rpc"
-
-	_ "go.viam.com/rplidar/serial" //register
 )
 
 type closeable interface {
@@ -53,15 +52,13 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
 	}
 
+	// Check if USB device is avialabel
+	// TODO: add search filter for product and model info to confirm rplidar is present instead of assuming
 	usbDevices := usb.Search(
 		usb.SearchFilter{},
 		func(vendorID, productID int) bool {
 			return true
 		})
-
-	//filter := serial.SearchFilter{} //Type: serial.TypeUnknown usb.NewSearchFilter()
-	//lidarComponents := serial.Search(filter)
-	//fmt.Printf("Serial DEVICES: %v \n", lidarComponents)
 
 	if len(usbDevices) != 0 {
 		golog.Global.Debugf("detected %d lidar devices", len(usbDevices))
@@ -72,21 +69,17 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return errors.New("no usb devices found")
 	}
 
-	lidarDevices := []config.Component{}
+	// Create rplidar component
+	lidarDevice := config.Component{
+		Name:       "rplidar",
+		Type:       config.ComponentTypeCamera,
+		Model:      rplidar.ModelName,
+		Attributes: config.AttributeMap{"device_path": "/dev/ttyUSB0"},
+	}
 
+	// Add device path if specified
 	if argsParsed.DevicePath != "" {
-		lidarDevices = []config.Component{{Type: config.ComponentTypeCamera, Model: rplidar.ModelName, Attributes: config.AttributeMap{"device_path": argsParsed.DevicePath}, Name: "rplidar"}}
-	} else {
-		lidarDevices = []config.Component{{Type: config.ComponentTypeCamera, Model: rplidar.ModelName, Attributes: config.AttributeMap{"device_path": "/dev/ttyUSB0"}, Name: "rplidar"}}
-	}
-
-	if len(lidarDevices) == 0 {
-		return errors.New("no lidar devices found")
-	}
-
-	lidarDevice := lidarDevices[0]
-	if lidarDevice.Model != rplidar.ModelName {
-		return errors.New("device is not rplidar")
+		lidarDevice.Attributes = config.AttributeMap{"device_path": argsParsed.DevicePath}
 	}
 
 	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)
@@ -108,6 +101,6 @@ func runServer(ctx context.Context, port int, lidarComponent config.Component, l
 	defer myRobot.Close(ctx)
 
 	options := web.NewOptions()
-	options.Network = config.NetworkConfig{BindAddress: ":4444"}
+	options.Network = config.NetworkConfig{BindAddress: fmt.Sprintf(":%d", port)}
 	return webserver.RunWeb(ctx, myRobot, options, logger)
 }

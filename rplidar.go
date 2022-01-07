@@ -1,4 +1,4 @@
-package serial
+package rplidar
 
 import (
 	"context"
@@ -24,16 +24,20 @@ import (
 	gutils "go.viam.com/utils"
 )
 
+const (
+	// ModelName is how the lidar will be registered into core.
+	ModelName = "rplidar"
+
+	// Type is the lidar specific type.
+	Type = camera.SubtypeName
+)
+
 func init() {
 	registry.RegisterComponent(camera.Subtype, "rplidar", registry.Component{Constructor: func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (interface{}, error) {
 		devicePath := config.Attributes.String("device_path")
 		if devicePath == "" {
 			return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
 		}
-		//devicePath = "/dev/ttyUSB0"
-		// } else {
-		// 	fmt.Println(devicePath)
-		// }
 		return NewDevice(devicePath)
 	}})
 	// camera.RegisterType(rplidar.Type, camera.TypeRegistration{
@@ -186,16 +190,11 @@ func NewDevice(devicePath string) (camera.Camera, error) {
 		return nil, fmt.Errorf("error on startup of rplidar %v", err)
 	}
 
-	gutils.PanicCapturingGo(func() {
-		//defer d.Stop(cancelCtx)
-
-		//d.Start(cancelCtx)
-		//err := d.Start(cancelCtx)
-
-		if err == nil {
-			d.run(cancelCtx)
-		}
-	})
+	// gutils.PanicCapturingGo(func() {
+	// 	if err == nil {
+	// 		d.run(cancelCtx)
+	// 	}
+	// })
 
 	return d, nil
 }

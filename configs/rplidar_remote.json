@@ -1,0 +1,8 @@
+{
+    "remotes": [
+        {
+            "name": "rplidar",
+            "address": "localhost:4444"
+        }
+    ]
+}
