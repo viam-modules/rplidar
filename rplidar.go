@@ -7,6 +7,7 @@ import (
 	"image"
 	"image/color"
 	"math"
+	"strings"
 	"sync"
 	"time"
 
@@ -431,7 +432,11 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
 		return nil, nil
 	}
 
-	return pc, pc.WriteToFile("bar.las")
+	t_now := (time.Now())
+	t_now2 := t_now.Format(time.RFC3339)
+	t_str := strings.Replace(strings.Replace(t_now2, ":", "_", 3), "-", "", 2)
+
+	return pc, pc.WriteToFile("data/rplidar_data_" + t_str + ".las")
 
 	// if options.NoFilter {
 	// 	return measurements, nil
