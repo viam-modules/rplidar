@@ -9,3 +9,10 @@ export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*
 ```
 
 Also run `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
+
+# Getting started
+
+Currently only tested on an RPI:
+1. `make`
+2. Make sure you run the commands above
+3. `go run -tags=pi cmd/server/main.go `
