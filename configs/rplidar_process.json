@@ -2,7 +2,7 @@
     "remotes": [
         {
             "name": "rplidar",
-            "address": "localhost:4444"
+            "address": "localhost:8080"
         }
     ],
     "processes": [
