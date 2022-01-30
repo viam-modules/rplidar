@@ -30,7 +30,7 @@ func main() {
 }
 
 var (
-	defaultPort = 4444
+	defaultPort = 8080
 	logger      = rlog.Logger.Named("server")
 )
 
@@ -52,7 +52,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
 	}
 
-	// Check if USB device is avialabel
+	// Check if USB device is available
 	// TODO: add search filter for product and model info to confirm rplidar is present instead of assuming
 	usbDevices := usb.Search(
 		usb.SearchFilter{},

@@ -22,7 +22,6 @@ import (
 	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
-	gutils "go.viam.com/utils"
 )
 
 const (
@@ -34,13 +33,14 @@ const (
 )
 
 func init() {
-	registry.RegisterComponent(camera.Subtype, "rplidar", registry.Component{Constructor: func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (interface{}, error) {
-		devicePath := config.Attributes.String("device_path")
-		if devicePath == "" {
-			return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
-		}
-		return NewDevice(devicePath)
-	}})
+	registry.RegisterComponent(camera.Subtype, "rplidar",
+		registry.Component{Constructor: func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (interface{}, error) {
+			devicePath := config.Attributes.String("device_path")
+			if devicePath == "" {
+				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
+			}
+			return NewDevice(devicePath)
+		}})
 	// camera.RegisterType(rplidar.Type, camera.TypeRegistration{
 	// 	USBInfo: &usb.Identifier{
 	// 		Vendor:  0x10c4,
@@ -165,10 +165,14 @@ func NewDevice(devicePath string) (camera.Camera, error) {
 	defer gen.DeleteRplidar_response_device_health_t(healthInfo)
 
 	if result := driver.GetHealth(healthInfo, defaultTimeout); Result(result) != ResultOk {
+		gen.RPlidarDriverDisposeDriver(driver)
+		driver = nil
 		return nil, fmt.Errorf("failed to get health: %w", Result(result).Failed())
 	}
 
 	if int(healthInfo.GetStatus()) == gen.RPLIDAR_STATUS_ERROR {
+		gen.RPlidarDriverDisposeDriver(driver)
+		driver = nil
 		return nil, errors.New("bad health")
 	}
 
@@ -184,18 +188,13 @@ func NewDevice(devicePath string) (camera.Camera, error) {
 	}
 
 	d.cancelFunc = cancelFunc
-	d.activeBackgroundWorkers.Add(1)
 
 	err := d.Start(cancelCtx)
 	if err != nil {
+		driver = nil
+		gen.RPlidarDriverDisposeDriver(driver)
 		return nil, fmt.Errorf("error on startup of rplidar %v", err)
 	}
-
-	// gutils.PanicCapturingGo(func() {
-	// 	if err == nil {
-	// 		d.run(cancelCtx)
-	// 	}
-	// })
 
 	return d, nil
 }
@@ -216,8 +215,7 @@ type Device struct {
 	firmwareVersion  string
 	hardwareRevision int
 
-	cancelFunc              func()
-	activeBackgroundWorkers sync.WaitGroup
+	cancelFunc func()
 }
 
 type ScanOptions struct {
@@ -233,30 +231,6 @@ func (d *Device) Info(ctx context.Context) (map[string]interface{}, error) {
 		"firmware_version":  d.firmwareVersion,
 		"hardware_revision": d.hardwareRevision,
 	}, nil
-}
-
-func (d *Device) run(ctx context.Context) error {
-	defer d.activeBackgroundWorkers.Done()
-	defer d.Stop(ctx)
-
-	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		err := ctx.Err()
-		if err != nil {
-			// cancelled
-			return err
-		}
-
-		if !gutils.SelectContextOrWait(ctx, time.Second) {
-			return nil
-		}
-
-	}
 }
 
 // SerialNumber returns the serial number of the device.
@@ -330,7 +304,7 @@ func (d *Device) Bounds(ctx context.Context) (r3.Vector, error) {
 	return bounds, nil
 }
 
-// Start requests that the device start up (start spinning).
+// Start requests that the device starts up and starts spinning.
 func (d *Device) Start(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -347,7 +321,7 @@ func (d *Device) start() {
 	d.nodes = gen.New_measurementNodeHqArray(d.nodeSize)
 }
 
-// Stop request that the device stop (stop spinning).
+// Stop request that the device stops spinning.
 func (d *Device) Stop(ctx context.Context) error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
@@ -362,13 +336,9 @@ func (d *Device) Stop(ctx context.Context) error {
 
 	d.driver.Stop()
 	d.driver.StopMotor()
+	d.started = false
 	return nil
 }
-
-// Close just stops the device.
-// func (d *Device) Close(ctx context.Context) error {
-// 	return d.Stop(ctx)
-// }
 
 const defaultNumScans = 3
 
@@ -437,35 +407,6 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
 	t_str := strings.Replace(strings.Replace(t_now2, ":", "_", 3), "-", "", 2)
 
 	return pc, pc.WriteToFile("data/rplidar_data_" + t_str + ".las")
-
-	// if options.NoFilter {
-	// 	return measurements, nil
-	// }
-	// sort.Stable(measurements)
-	// filteredMeasurements := make(lidar.Measurements, 0, len(measurements))
-
-	// minAngleDiff, maxDistDiff := d.filterParams()
-	// prev := measurements[0]
-	// detectedRay := false
-	// for mIdx := 1; mIdx < len(measurements); mIdx++ {
-	// 	curr := measurements[mIdx]
-	// 	currAngle := curr.AngleDeg()
-	// 	prevAngle := prev.AngleDeg()
-	// 	currDist := curr.Distance()
-	// 	prevDist := prev.Distance()
-	// 	if math.Abs(currAngle-prevAngle) < minAngleDiff {
-	// 		if math.Abs(currDist-prevDist) > maxDistDiff {
-	// 			detectedRay = true
-	// 			continue
-	// 		}
-	// 	}
-	// 	prev = curr
-	// 	if !detectedRay {
-	// 		filteredMeasurements = append(filteredMeasurements, curr)
-	// 	}
-	// 	detectedRay = false
-	// }
-	// return filteredMeasurements, nil
 }
 
 func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Point {
@@ -551,8 +492,11 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 
 }
 
+// Close stops the device and disposes of the driver.
 func (d *Device) Close(ctx context.Context) error {
-	d.cancelFunc()
-	d.activeBackgroundWorkers.Wait()
+	defer d.cancelFunc()
+	d.Stop(ctx)
+	gen.RPlidarDriverDisposeDriver(d.driver)
+	d.driver = nil
 	return nil
 }
