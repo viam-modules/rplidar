@@ -21,10 +21,6 @@ import (
 	"go.viam.com/utils/rpc"
 )
 
-type closeable interface {
-	Close(ctx context.Context) error
-}
-
 func main() {
 	utils.ContextualMain(mainWithArgs, logger)
 }
@@ -98,7 +94,6 @@ func runServer(ctx context.Context, port int, lidarComponent config.Component, l
 	if err != nil {
 		return err
 	}
-	defer myRobot.Close(ctx)
 
 	options := web.NewOptions()
 	options.Network = config.NetworkConfig{BindAddress: fmt.Sprintf(":%d", port)}

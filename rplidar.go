@@ -176,8 +176,6 @@ func NewDevice(devicePath string) (camera.Camera, error) {
 		return nil, errors.New("bad health")
 	}
 
-	cancelCtx, cancelFunc := context.WithCancel(context.Background())
-
 	d := &Device{
 		driver:           driver,
 		nodeSize:         8192,
@@ -187,9 +185,7 @@ func NewDevice(devicePath string) (camera.Camera, error) {
 		hardwareRevision: hardwareRev,
 	}
 
-	d.cancelFunc = cancelFunc
-
-	err := d.Start(cancelCtx)
+	err := d.Start()
 	if err != nil {
 		driver = nil
 		gen.RPlidarDriverDisposeDriver(driver)
@@ -214,8 +210,6 @@ type Device struct {
 	serialNumber     string
 	firmwareVersion  string
 	hardwareRevision int
-
-	cancelFunc func()
 }
 
 type ScanOptions struct {
@@ -305,7 +299,7 @@ func (d *Device) Bounds(ctx context.Context) (r3.Vector, error) {
 }
 
 // Start requests that the device starts up and starts spinning.
-func (d *Device) Start(ctx context.Context) error {
+func (d *Device) Start() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	d.start()
@@ -322,7 +316,7 @@ func (d *Device) start() {
 }
 
 // Stop request that the device stops spinning.
-func (d *Device) Stop(ctx context.Context) error {
+func (d *Device) Stop() error {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -489,14 +483,14 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 	}
 
 	return img, nil, nil
-
 }
 
 // Close stops the device and disposes of the driver.
 func (d *Device) Close(ctx context.Context) error {
-	defer d.cancelFunc()
-	d.Stop(ctx)
-	gen.RPlidarDriverDisposeDriver(d.driver)
-	d.driver = nil
+	if d.driver != nil {
+		d.Stop()
+		gen.RPlidarDriverDisposeDriver(d.driver)
+		d.driver = nil
+	}
 	return nil
 }
