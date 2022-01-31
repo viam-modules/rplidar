@@ -44,12 +44,12 @@ func init() {
 			}
 			return NewDevice(devicePath)
 		}})
-	// camera.RegisterType(rplidar.Type, camera.TypeRegistration{
+
+	// TODO(kat): Make sure rpidar gets recognized on osx as well. This info might come in handy:
 	// 	USBInfo: &usb.Identifier{
 	// 		Vendor:  0x10c4,
 	// 		Product: 0xea60,
-	// 	},
-	// })
+	// }
 }
 
 type (
@@ -422,12 +422,8 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Poin
 	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{distance, 0, 0})
 	p := spatialmath.Compose(pose1, pose2).Point()
 
-	//fmt.Printf("Reflectivity = %v | Type = %T | GoRep = %#v \n", reflectivity, reflectivity, reflectivity)
-
 	pc := pointcloud.NewBasicPoint(p.X*1000, p.Y*1000, p.Z*1000).SetIntensity(uint16(reflectivity) * 255)
 	pc = pc.SetColor(color.NRGBA{255, 0, 0, 255})
-
-	//fmt.Printf(" PC: X = %v | Y = %v | Z = %v \n", p.X, p.Y, p.Z)
 
 	return pc
 }
