@@ -24,5 +24,5 @@ Currently only tested on an RPI:
 3. Create a folder to save data in form of pcd files in: `mkdir data`
 4. `go run -tags=pi cmd/server/main.go `
 5. Save data or view the output:
-    * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8080), or
+    * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
     * Run the client in a separate terminal: `go run -tags=pi cmd/client/main.go`

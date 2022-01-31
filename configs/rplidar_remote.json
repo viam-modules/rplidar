@@ -2,7 +2,7 @@
     "remotes": [
         {
             "name": "rplidar",
-            "address": "localhost:8080"
+            "address": "localhost:8081"
         }
     ]
 }

@@ -25,7 +25,7 @@ var logger = rlog.Logger.Named("client")
 
 // Arguments for the command.
 type Arguments struct {
-	DeviceAddress string `flag:"device,required,default=localhost:8080,usage=device address"`
+	DeviceAddress string `flag:"device,required,default=localhost:8081,usage=device address"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {

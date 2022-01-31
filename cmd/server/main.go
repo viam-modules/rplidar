@@ -26,7 +26,7 @@ func main() {
 }
 
 var (
-	defaultPort = 8080
+	defaultPort = 8081
 	logger      = rlog.Logger.Named("server")
 )
 
@@ -49,7 +49,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 
 	// Check if USB device is available
-	// TODO: add search filter for product and model info to confirm rplidar is present instead of assuming
+	// TODO(jeremy): add search filter for product and model info to confirm rplidar is present instead of assuming
 	usbDevices := usb.Search(
 		usb.SearchFilter{},
 		func(vendorID, productID int) bool {
