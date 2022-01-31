@@ -404,11 +404,12 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
 	defer utils.UncheckedErrorFunc(f.Close)
 
 	w := bufio.NewWriter(f)
-	err = pc.ToPCD(w)
-	if err != nil {
+	if err = pc.ToPCD(w); err != nil {
 		return nil, err
 	}
-
+	if err = w.Flush(); err != nil {
+		return nil, err
+	}
 	return pc, nil
 }
 
