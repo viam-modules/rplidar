@@ -1,17 +1,20 @@
 package rplidar
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
 	"image"
 	"image/color"
 	"math"
+	"os"
 	"strings"
 	"sync"
 	"time"
 
 	"go.viam.com/rplidar/gen"
+	"go.viam.com/utils"
 
 	"github.com/edaniels/golog"
 	"github.com/golang/geo/r3"
@@ -21,7 +24,7 @@ import (
 	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/spatialmath"
-	"go.viam.com/rdk/utils"
+	rdkUtils "go.viam.com/rdk/utils"
 )
 
 const (
@@ -351,19 +354,13 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
 	if !d.scannedOnce {
 		d.scannedOnce = true
 		// discard scans for warmup
-		//nolint
-		//sopt.Count = 10
 		d.scan(ctx)
 		time.Sleep(time.Second)
 	}
 
-	numScans := defaultNumScans // 3
-	//if sopt.Count != 0 {
-	//	numScans = sopt.Count
-	//}
+	numScans := defaultNumScans
 
 	nodeCount := int64(d.nodeSize)
-	//measurements := make(lidar.Measurements, 0, nodeCount*int64(numScans))
 
 	pc := pointcloud.New()
 
@@ -386,7 +383,7 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
 			nodeAngle := (float64(node.GetAngle_z_q14()) * 90 / (1 << 14))
 			nodeDistance := float64(node.GetDist_mm_q2()) / 4
 
-			err := pc.Set(pointFrom(utils.DegToRad(nodeAngle), utils.DegToRad(0), float64(nodeDistance)/1000, 255))
+			err := pc.Set(pointFrom(rdkUtils.DegToRad(nodeAngle), rdkUtils.DegToRad(0), float64(nodeDistance)/1000, 255))
 			if err != nil {
 				return nil, err
 			}
@@ -400,7 +397,19 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
 	t_now2 := t_now.Format(time.RFC3339)
 	t_str := strings.Replace(strings.Replace(t_now2, ":", "_", 3), "-", "", 2)
 
-	return pc, pc.WriteToFile("data/rplidar_data_" + t_str + ".las")
+	f, err := os.Create("data/rplidar_data_" + t_str + ".pcd")
+	if err != nil {
+		return nil, err
+	}
+	defer utils.UncheckedErrorFunc(f.Close)
+
+	w := bufio.NewWriter(f)
+	err = pc.ToPCD(w)
+	if err != nil {
+		return nil, err
+	}
+
+	return pc, nil
 }
 
 func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Point {
