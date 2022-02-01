@@ -29,6 +29,8 @@ vendor/
 
 # Test data
 coverage.txt
+*.las
+*.pcd
 
 *~
 *#
@@ -50,3 +52,5 @@ bin/
 
 librplidar_sdk.a
 **/sdk/output
+
+main
