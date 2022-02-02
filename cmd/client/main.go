@@ -37,7 +37,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	return runClient(ctx, argsParsed.DeviceAddress, logger)
 }
 
-func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
+func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) error {
 
 	robotClient, err := client.New(ctx, deviceAddress, logger, client.WithDialOptions(rpc.WithInsecure()))
 	if err != nil {
@@ -54,21 +54,9 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 	}
 
 	// Run loop
-	ticker := time.NewTicker(5 * time.Second)
-	defer ticker.Stop()
-	utils.ContextMainReadyFunc(ctx)()
-
 	for {
-		select {
-		case <-ctx.Done():
+		if !utils.SelectContextOrWait(ctx, 5*time.Second) {
 			return ctx.Err()
-		default:
-		}
-
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
 		}
 
 		pc, err := cameraDevice.NextPointCloud(ctx)
