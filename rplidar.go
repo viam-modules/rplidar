@@ -29,7 +29,7 @@ import (
 )
 
 const (
-	// modelName is how the lidar will be registered into rdk.
+	// ModelName is how the lidar will be registered into rdk.
 	ModelName      = "rplidar"
 	defaultTimeout = uint(1000)
 )
@@ -219,7 +219,7 @@ type Device struct {
 }
 
 // Info returns metadata about the device.
-func (d *Device) Info(ctx context.Context) (map[string]interface{}, error) {
+func (d *Device) Info() (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"model":             d.Model(),
 		"serial_number":     d.serialNumber,
@@ -261,7 +261,7 @@ func (d *Device) Model() string {
 }
 
 // Range returns the meter range of the device.
-func (d *Device) Range(ctx context.Context) (float64, error) {
+func (d *Device) Range() (float64, error) {
 	switch d.model {
 	case modelA1:
 		return 12, nil
@@ -284,11 +284,11 @@ func (d *Device) filterParams() (minAngleDiff float64, maxDistDiff float64) {
 }
 
 // Bounds returns the square meter bounds of the device.
-func (d *Device) Bounds(ctx context.Context) (r3.Vector, error) {
+func (d *Device) Bounds() (r3.Vector, error) {
 	if d.bounds != nil {
 		return *d.bounds, nil
 	}
-	r, err := d.Range(ctx)
+	r, err := d.Range()
 	if err != nil {
 		return r3.Vector{}, err
 	}
@@ -337,7 +337,7 @@ func (d *Device) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, err
 	if err != nil {
 		return nil, err
 	}
-	if err = d.savePcdFile(ctx, timeStamp, pc); err != nil {
+	if err = d.savePCDFile(timeStamp, pc); err != nil {
 		return nil, err
 	}
 	return pc, nil
@@ -378,7 +378,7 @@ func (d *Device) scan(ctx context.Context, numScans int) (pointcloud.PointCloud,
 	return pc, nil
 }
 
-func (d *Device) savePcdFile(ctx context.Context, timeStamp time.Time, pc pointcloud.PointCloud) error {
+func (d *Device) savePCDFile(timeStamp time.Time, pc pointcloud.PointCloud) error {
 	f, err := os.Create("data/rplidar_data_" + timeStamp.Format("2006-01-02T15_04_05.0000") + ".pcd")
 	if err != nil {
 		return err
@@ -434,7 +434,7 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Poin
 }
 
 // AngularResolution returns the highest angular resolution the device offers.
-func (d *Device) AngularResolution(ctx context.Context) (float64, error) {
+func (d *Device) AngularResolution() (float64, error) {
 	switch d.model {
 	case modelA1:
 		return .9, nil
