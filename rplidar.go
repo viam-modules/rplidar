@@ -10,7 +10,6 @@ import (
 	"image/color"
 	"math"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -374,11 +373,7 @@ func (d *Device) scan(ctx context.Context, numScans int) (pointcloud.PointCloud,
 }
 
 func (d *Device) savePcdFile(ctx context.Context, timeStamp time.Time, pc pointcloud.PointCloud) error {
-	t_now := (time.Now())
-	t_now2 := t_now.Format(time.RFC3339)
-	t_str := strings.Replace(strings.Replace(t_now2, ":", "_", 3), "-", "", 2)
-
-	f, err := os.Create("data/rplidar_data_" + t_str + ".pcd")
+	f, err := os.Create("data/rplidar_data_" + timeStamp.Format("20060102T15_04_05Z") + ".pcd")
 	if err != nil {
 		return err
 	}
@@ -405,7 +400,7 @@ func (d *Device) getPointCloud(ctx context.Context) (pointcloud.PointCloud, time
 		if _, err := d.scan(ctx, d.warmupNumDiscardedScans); err != nil {
 			return nil, time.Now(), err
 		}
-		time.Sleep(time.Second)
+		utils.SelectContextOrWait(ctx, time.Second)
 	}
 
 	pc, err := d.scan(ctx, d.defaultNumScans)
