@@ -48,12 +48,10 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
 	}
 
-	// Check if USB device is available
-	// TODO(jeremy): add search filter for product and model info to confirm rplidar is present instead of assuming
 	usbDevices := usb.Search(
 		usb.SearchFilter{},
 		func(vendorID, productID int) bool {
-			return true
+			return vendorID == rplidar.USBInfo.Vendor && productID == rplidar.USBInfo.Product
 		})
 
 	if len(usbDevices) != 0 {
@@ -70,12 +68,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		Name:       "rplidar",
 		Type:       config.ComponentTypeCamera,
 		Model:      rplidar.ModelName,
-		Attributes: config.AttributeMap{"device_path": "/dev/ttyUSB0"},
-	}
-
-	// Add device path if specified
-	if argsParsed.DevicePath != "" {
-		lidarDevice.Attributes = config.AttributeMap{"device_path": argsParsed.DevicePath}
+		Attributes: config.AttributeMap{"device_path": usbDevices[0].Path},
 	}
 
 	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)

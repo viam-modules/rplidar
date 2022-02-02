@@ -24,6 +24,7 @@ import (
 	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/spatialmath"
+	"go.viam.com/rdk/usb"
 	rdkUtils "go.viam.com/rdk/utils"
 )
 
@@ -32,6 +33,11 @@ const (
 	ModelName      = "rplidar"
 	defaultTimeout = uint(1000)
 )
+
+var USBInfo = &usb.Identifier{
+	Vendor:  0x10c4,
+	Product: 0xea60,
+}
 
 func init() {
 	registry.RegisterComponent(
