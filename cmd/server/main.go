@@ -21,14 +21,14 @@ import (
 	"go.viam.com/utils/rpc"
 )
 
-func main() {
-	utils.ContextualMain(mainWithArgs, logger)
-}
-
 var (
 	defaultPort = 8081
 	logger      = rlog.Logger.Named("server")
 )
+
+func main() {
+	utils.ContextualMain(mainWithArgs, logger)
+}
 
 // Arguments for the command.
 type Arguments struct {
@@ -44,7 +44,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 
 	if argsParsed.Port == 0 {
-		golog.Global.Debugf("using default port %d ", defaultPort)
+		logger.Debugf("using default port %d ", defaultPort)
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
 	}
 
@@ -57,9 +57,9 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		})
 
 	if len(usbDevices) != 0 {
-		golog.Global.Debugf("detected %d lidar devices", len(usbDevices))
+		logger.Debugf("detected %d lidar devices", len(usbDevices))
 		for _, comp := range usbDevices {
-			golog.Global.Debug(comp)
+			logger.Debug(comp)
 		}
 	} else {
 		return errors.New("no usb devices found")

@@ -7,9 +7,9 @@ import (
 	"io"
 	"time"
 
-	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
 
+	"github.com/edaniels/golog"
 	_ "go.viam.com/rdk/component/camera/register"
 	"go.viam.com/rdk/grpc/client"
 	"go.viam.com/rdk/rlog"
@@ -71,7 +71,7 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (
 		case <-ticker.C:
 		}
 
-		pc, err := cameraDevice.NextPointCloud(context.Background())
+		pc, err := cameraDevice.NextPointCloud(ctx)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil

@@ -1,3 +1,4 @@
+// Package rplidar implements a general rplidar LIDAR as a camera.
 package rplidar
 
 import (
@@ -28,28 +29,28 @@ import (
 )
 
 const (
-	// ModelName is how the lidar will be registered into core.
-	ModelName = "rplidar"
-
-	// Type is the lidar specific type.
-	Type = camera.SubtypeName
+	// modelName is how the lidar will be registered into rdk.
+	ModelName      = "rplidar"
+	defaultTimeout = uint(1000)
 )
 
 func init() {
-	registry.RegisterComponent(camera.Subtype, "rplidar",
-		registry.Component{Constructor: func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (interface{}, error) {
+	registry.RegisterComponent(
+		camera.Subtype,
+		ModelName,
+		registry.Component{Constructor: func(
+			ctx context.Context,
+			r robot.Robot,
+			config config.Component,
+			logger golog.Logger,
+		) (interface{}, error) {
+			port := config.Attributes.Int("port", 8081)
 			devicePath := config.Attributes.String("device_path")
 			if devicePath == "" {
 				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
 			}
-			return NewDevice(devicePath)
+			return NewRPLidar(logger, port, devicePath)
 		}})
-
-	// TODO(kat): Make sure rpidar gets recognized on osx as well. This info might come in handy:
-	// 	USBInfo: &usb.Identifier{
-	// 		Vendor:  0x10c4,
-	// 		Product: 0xea60,
-	// }
 }
 
 type (
@@ -114,10 +115,8 @@ func (r ResultError) Error() string {
 	return r.String()
 }
 
-const defaultTimeout = uint(1000)
-
-// NewDevice returns a new RPLidar device at the given path.
-func NewDevice(devicePath string) (camera.Camera, error) {
+// NewRPLidar returns a new RPLidar device at the given path.
+func NewRPLidar(logger golog.Logger, port int, devicePath string) (camera.Camera, error) {
 	var driver gen.RPlidarDriver
 	devInfo := gen.NewRplidar_response_device_info_t()
 	defer gen.DeleteRplidar_response_device_info_t(devInfo)
@@ -142,7 +141,6 @@ func NewDevice(devicePath string) (camera.Camera, error) {
 			connectErr = fmt.Errorf("failed to get device info: %w", Result(result).Failed())
 			continue
 		}
-
 		driver = possibleDriver
 		break
 	}
@@ -180,44 +178,39 @@ func NewDevice(devicePath string) (camera.Camera, error) {
 	}
 
 	d := &Device{
-		driver:           driver,
-		nodeSize:         8192,
-		model:            devInfo.GetModel(),
-		serialNumber:     serialNumStr,
-		firmwareVersion:  firmwareVer,
-		hardwareRevision: hardwareRev,
+		driver:                  driver,
+		nodeSize:                8192,
+		logger:                  logger,
+		model:                   devInfo.GetModel(),
+		serialNumber:            serialNumStr,
+		firmwareVersion:         firmwareVer,
+		hardwareRevision:        hardwareRev,
+		defaultNumScans:         3,
+		warmupNumDiscardedScans: 10,
 	}
-
-	err := d.Start()
-	if err != nil {
-		driver = nil
-		gen.RPlidarDriverDisposeDriver(driver)
-		return nil, fmt.Errorf("error on startup of rplidar %v", err)
-	}
-
+	d.Start()
 	return d, nil
 }
 
 // Device controls an RPLidar device.
 type Device struct {
-	mu          sync.Mutex
-	driver      gen.RPlidarDriver
-	nodes       gen.Rplidar_response_measurement_node_hq_t
-	nodeSize    int
-	started     bool
-	scannedOnce bool
-	bounds      *r3.Vector
+	mu                      sync.Mutex
+	driver                  gen.RPlidarDriver
+	nodes                   gen.Rplidar_response_measurement_node_hq_t
+	nodeSize                int
+	started                 bool
+	scannedOnce             bool
+	bounds                  *r3.Vector
+	defaultNumScans         int
+	warmupNumDiscardedScans int
+
+	logger golog.Logger
 
 	// info
 	model            byte
 	serialNumber     string
 	firmwareVersion  string
 	hardwareRevision int
-}
-
-type ScanOptions struct {
-	// Count determines how many scans to perform.
-	Count int
 }
 
 // Info returns metadata about the device.
@@ -302,24 +295,19 @@ func (d *Device) Bounds(ctx context.Context) (r3.Vector, error) {
 }
 
 // Start requests that the device starts up and starts spinning.
-func (d *Device) Start() error {
+func (d *Device) Start() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.start()
-	return nil
-}
-
-func (d *Device) start() {
-	golog.Global.Debugf("starting motor")
 
 	d.started = true
+	d.logger.Debugf("starting motor")
 	d.driver.StartMotor()
 	d.driver.StartScan(false, true)
 	d.nodes = gen.New_measurementNodeHqArray(d.nodeSize)
 }
 
 // Stop request that the device stops spinning.
-func (d *Device) Stop() error {
+func (d *Device) Stop() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
@@ -329,40 +317,30 @@ func (d *Device) Stop() error {
 			d.nodes = nil
 		}()
 	}
-	golog.Global.Debugf("stopping motor")
-
+	d.logger.Debugf("stopping motor")
 	d.driver.Stop()
 	d.driver.StopMotor()
 	d.started = false
-	return nil
 }
 
-const defaultNumScans = 3
-
-// Scan performs a scan on the device and performs some filtering to clean up the data.
+// NextPointCloud performs a scan on the device and performs some filtering to clean up the data.
+// It also saves the pointcloud in form of a pcd file.
 func (d *Device) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.scan(ctx)
+	pc, timeStamp, err := d.getPointCloud(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = d.savePcdFile(ctx, timeStamp, pc); err != nil {
+		return nil, err
+	}
+	return pc, nil
 }
 
-func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
-	if !d.started {
-		d.start()
-		d.started = true
-	}
-	if !d.scannedOnce {
-		d.scannedOnce = true
-		// discard scans for warmup
-		d.scan(ctx)
-		time.Sleep(time.Second)
-	}
-
-	numScans := defaultNumScans
-
-	nodeCount := int64(d.nodeSize)
-
+func (d *Device) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
 	pc := pointcloud.New()
+	nodeCount := int64(d.nodeSize)
 
 	var dropCount int
 	for i := 0; i < numScans; i++ {
@@ -392,25 +370,49 @@ func (d *Device) scan(ctx context.Context) (pointcloud.PointCloud, error) {
 	if pc.Size() == 0 {
 		return nil, nil
 	}
+	return pc, nil
+}
 
+func (d *Device) savePcdFile(ctx context.Context, timeStamp time.Time, pc pointcloud.PointCloud) error {
 	t_now := (time.Now())
 	t_now2 := t_now.Format(time.RFC3339)
 	t_str := strings.Replace(strings.Replace(t_now2, ":", "_", 3), "-", "", 2)
 
 	f, err := os.Create("data/rplidar_data_" + t_str + ".pcd")
 	if err != nil {
-		return nil, err
+		return err
 	}
 	defer utils.UncheckedErrorFunc(f.Close)
 
 	w := bufio.NewWriter(f)
 	if err = pc.ToPCD(w); err != nil {
-		return nil, err
+		return err
 	}
 	if err = w.Flush(); err != nil {
-		return nil, err
+		return err
 	}
-	return pc, nil
+	return nil
+}
+
+func (d *Device) getPointCloud(ctx context.Context) (pointcloud.PointCloud, time.Time, error) {
+	if !d.started {
+		d.Start()
+	}
+
+	// discard scans for warmup
+	if !d.scannedOnce {
+		d.scannedOnce = true
+		if _, err := d.scan(ctx, d.warmupNumDiscardedScans); err != nil {
+			return nil, time.Now(), err
+		}
+		time.Sleep(time.Second)
+	}
+
+	pc, err := d.scan(ctx, d.defaultNumScans)
+	if err != nil {
+		return nil, time.Now(), err
+	}
+	return pc, time.Now(), nil
 }
 
 func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Point {
@@ -440,8 +442,9 @@ func (d *Device) AngularResolution(ctx context.Context) (float64, error) {
 	}
 }
 
+// Next grabs the next image.
 func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
-	pc, err := d.NextPointCloud(ctx)
+	pc, _, err := d.getPointCloud(ctx)
 	if err != nil {
 		return nil, nil, err
 	}
