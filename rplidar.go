@@ -377,13 +377,15 @@ func (d *Device) savePcdFile(ctx context.Context, timeStamp time.Time, pc pointc
 	if err != nil {
 		return err
 	}
-	defer utils.UncheckedErrorFunc(f.Close)
 
 	w := bufio.NewWriter(f)
 	if err = pc.ToPCD(w); err != nil {
 		return err
 	}
 	if err = w.Flush(); err != nil {
+		return err
+	}
+	if err = f.Close(); err != nil {
 		return err
 	}
 	return nil
