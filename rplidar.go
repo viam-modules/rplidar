@@ -379,7 +379,7 @@ func (d *Device) scan(ctx context.Context, numScans int) (pointcloud.PointCloud,
 }
 
 func (d *Device) savePCDFile(timeStamp time.Time, pc pointcloud.PointCloud) error {
-	f, err := os.Create("data/rplidar_data_" + timeStamp.Format("2006-01-02T15_04_05.0000") + ".pcd")
+	f, err := os.Create("data/rplidar_data_" + timeStamp.UTC().Format("2006-01-02T15_04_05.0000") + ".pcd")
 	if err != nil {
 		return err
 	}
@@ -391,10 +391,7 @@ func (d *Device) savePCDFile(timeStamp time.Time, pc pointcloud.PointCloud) erro
 	if err = w.Flush(); err != nil {
 		return err
 	}
-	if err = f.Close(); err != nil {
-		return err
-	}
-	return nil
+	return f.Close()
 }
 
 func (d *Device) getPointCloud(ctx context.Context) (pointcloud.PointCloud, time.Time, error) {

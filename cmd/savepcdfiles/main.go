@@ -93,13 +93,13 @@ func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component
 
 	// Run loop
 	for {
-		if !utils.SelectContextOrWait(ctx, 5*time.Second) {
+		if !utils.SelectContextOrWait(ctx, time.Second) {
 			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
 		}
 
 		pc, err := rplidar.NextPointCloud(ctx)
 		if err != nil {
-			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
+			return multierr.Combine(err, myRobot.Close(ctx))
 		}
 		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
