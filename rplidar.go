@@ -1,36 +1,61 @@
-package serial
+// Package rplidar implements a general rplidar LIDAR as a camera.
+package rplidar
 
 import (
+	"bufio"
 	"context"
 	"errors"
 	"fmt"
+	"image"
+	"image/color"
 	"math"
-	"sort"
+	"os"
 	"sync"
 	"time"
 
-	"go.viam.com/rplidar"
 	"go.viam.com/rplidar/gen"
+	"go.viam.com/utils"
 
 	"github.com/edaniels/golog"
-	"github.com/golang/geo/r2"
-	"go.viam.com/core/config"
-	"go.viam.com/core/lidar"
-	"go.viam.com/core/registry"
-	"go.viam.com/core/robot"
-	"go.viam.com/core/usb"
+	"github.com/golang/geo/r3"
+	"go.viam.com/rdk/component/camera"
+	"go.viam.com/rdk/config"
+	"go.viam.com/rdk/pointcloud"
+	"go.viam.com/rdk/registry"
+	"go.viam.com/rdk/robot"
+	"go.viam.com/rdk/spatialmath"
+	"go.viam.com/rdk/usb"
+	rdkUtils "go.viam.com/rdk/utils"
 )
 
+const (
+	// ModelName is how the lidar will be registered into rdk.
+	ModelName      = "rplidar"
+	defaultTimeout = uint(1000)
+)
+
+var USBInfo = &usb.Identifier{
+	Vendor:  0x10c4,
+	Product: 0xea60,
+}
+
 func init() {
-	registry.RegisterLidar(rplidar.ModelName, func(ctx context.Context, r robot.Robot, config config.Component, logger golog.Logger) (lidar.Lidar, error) {
-		return NewDevice(config.Host)
-	})
-	lidar.RegisterType(rplidar.Type, lidar.TypeRegistration{
-		USBInfo: &usb.Identifier{
-			Vendor:  0x10c4,
-			Product: 0xea60,
-		},
-	})
+	registry.RegisterComponent(
+		camera.Subtype,
+		ModelName,
+		registry.Component{Constructor: func(
+			ctx context.Context,
+			r robot.Robot,
+			config config.Component,
+			logger golog.Logger,
+		) (interface{}, error) {
+			port := config.Attributes.Int("port", 8081)
+			devicePath := config.Attributes.String("device_path")
+			if devicePath == "" {
+				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
+			}
+			return NewRPLidar(logger, port, devicePath)
+		}})
 }
 
 type (
@@ -95,10 +120,8 @@ func (r ResultError) Error() string {
 	return r.String()
 }
 
-const defaultTimeout = uint(1000)
-
-// NewDevice returns a new RPLidar device at the given path.
-func NewDevice(devicePath string) (*Device, error) {
+// NewRPLidar returns a new RPLidar device at the given path.
+func NewRPLidar(logger golog.Logger, port int, devicePath string) (camera.Camera, error) {
 	var driver gen.RPlidarDriver
 	devInfo := gen.NewRplidar_response_device_info_t()
 	defer gen.DeleteRplidar_response_device_info_t(devInfo)
@@ -123,7 +146,6 @@ func NewDevice(devicePath string) (*Device, error) {
 			connectErr = fmt.Errorf("failed to get device info: %w", Result(result).Failed())
 			continue
 		}
-
 		driver = possibleDriver
 		break
 	}
@@ -149,32 +171,45 @@ func NewDevice(devicePath string) (*Device, error) {
 	defer gen.DeleteRplidar_response_device_health_t(healthInfo)
 
 	if result := driver.GetHealth(healthInfo, defaultTimeout); Result(result) != ResultOk {
+		gen.RPlidarDriverDisposeDriver(driver)
+		driver = nil
 		return nil, fmt.Errorf("failed to get health: %w", Result(result).Failed())
 	}
 
 	if int(healthInfo.GetStatus()) == gen.RPLIDAR_STATUS_ERROR {
+		gen.RPlidarDriverDisposeDriver(driver)
+		driver = nil
 		return nil, errors.New("bad health")
 	}
 
-	return &Device{
-		driver:           driver,
-		nodeSize:         8192,
-		model:            devInfo.GetModel(),
-		serialNumber:     serialNumStr,
-		firmwareVersion:  firmwareVer,
-		hardwareRevision: hardwareRev,
-	}, nil
+	d := &Device{
+		driver:                  driver,
+		nodeSize:                8192,
+		logger:                  logger,
+		model:                   devInfo.GetModel(),
+		serialNumber:            serialNumStr,
+		firmwareVersion:         firmwareVer,
+		hardwareRevision:        hardwareRev,
+		defaultNumScans:         3,
+		warmupNumDiscardedScans: 10,
+	}
+	d.Start()
+	return d, nil
 }
 
 // Device controls an RPLidar device.
 type Device struct {
-	mu          sync.Mutex
-	driver      gen.RPlidarDriver
-	nodes       gen.Rplidar_response_measurement_node_hq_t
-	nodeSize    int
-	started     bool
-	scannedOnce bool
-	bounds      *r2.Point
+	mu                      sync.Mutex
+	driver                  gen.RPlidarDriver
+	nodes                   gen.Rplidar_response_measurement_node_hq_t
+	nodeSize                int
+	started                 bool
+	scannedOnce             bool
+	bounds                  *r3.Vector
+	defaultNumScans         int
+	warmupNumDiscardedScans int
+
+	logger golog.Logger
 
 	// info
 	model            byte
@@ -184,7 +219,7 @@ type Device struct {
 }
 
 // Info returns metadata about the device.
-func (d *Device) Info(ctx context.Context) (map[string]interface{}, error) {
+func (d *Device) Info() (map[string]interface{}, error) {
 	return map[string]interface{}{
 		"model":             d.Model(),
 		"serial_number":     d.serialNumber,
@@ -226,7 +261,7 @@ func (d *Device) Model() string {
 }
 
 // Range returns the meter range of the device.
-func (d *Device) Range(ctx context.Context) (float64, error) {
+func (d *Device) Range() (float64, error) {
 	switch d.model {
 	case modelA1:
 		return 12, nil
@@ -249,86 +284,68 @@ func (d *Device) filterParams() (minAngleDiff float64, maxDistDiff float64) {
 }
 
 // Bounds returns the square meter bounds of the device.
-func (d *Device) Bounds(ctx context.Context) (r2.Point, error) {
+func (d *Device) Bounds() (r3.Vector, error) {
 	if d.bounds != nil {
 		return *d.bounds, nil
 	}
-	r, err := d.Range(ctx)
+	r, err := d.Range()
 	if err != nil {
-		return r2.Point{}, err
+		return r3.Vector{}, err
 	}
 	width := r * 2
 	height := width
-	bounds := r2.Point{width, height}
+	bounds := r3.Vector{width, height, 1}
 	d.bounds = &bounds
 	return bounds, nil
 }
 
-// Start requests that the device start up (start spinning).
-func (d *Device) Start(ctx context.Context) error {
+// Start requests that the device starts up and starts spinning.
+func (d *Device) Start() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	d.start()
-	return nil
-}
 
-func (d *Device) start() {
 	d.started = true
+	d.logger.Debugf("starting motor")
 	d.driver.StartMotor()
 	d.driver.StartScan(false, true)
 	d.nodes = gen.New_measurementNodeHqArray(d.nodeSize)
 }
 
-// Stop request that the device stop (stop spinning).
-func (d *Device) Stop(ctx context.Context) error {
+// Stop request that the device stops spinning.
+func (d *Device) Stop() {
 	d.mu.Lock()
 	defer d.mu.Unlock()
+
 	if d.nodes != nil {
 		defer func() {
 			gen.Delete_measurementNodeHqArray(d.nodes)
 			d.nodes = nil
 		}()
 	}
+	d.logger.Debugf("stopping motor")
 	d.driver.Stop()
 	d.driver.StopMotor()
-	return nil
+	d.started = false
 }
 
-// Close just stops the device.
-func (d *Device) Close(ctx context.Context) error {
-	return d.Stop(ctx)
-}
-
-const defaultNumScans = 3
-
-// Scan performs a scan on the device and performs some filtering to clean up the data.
-func (d *Device) Scan(ctx context.Context, options lidar.ScanOptions) (lidar.Measurements, error) {
+// NextPointCloud performs a scan on the device and performs some filtering to clean up the data.
+// It also saves the pointcloud in form of a pcd file.
+func (d *Device) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	return d.scan(options)
+	pc, timeStamp, err := d.getPointCloud(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if err = d.savePCDFile(timeStamp, pc); err != nil {
+		return nil, err
+	}
+	return pc, nil
 }
 
-func (d *Device) scan(options lidar.ScanOptions) (lidar.Measurements, error) {
-	if !d.started {
-		d.start()
-		d.started = true
-	}
-	if !d.scannedOnce {
-		d.scannedOnce = true
-		// discard scans for warmup
-		//nolint
-		d.scan(lidar.ScanOptions{Count: 10})
-		time.Sleep(time.Second)
-	}
-
-	numScans := defaultNumScans
-	if options.Count != 0 {
-		numScans = options.Count
-	}
-	// numScans = 1
-
+func (d *Device) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
+	pc := pointcloud.New()
 	nodeCount := int64(d.nodeSize)
-	measurements := make(lidar.Measurements, 0, nodeCount*int64(numScans))
 
 	var dropCount int
 	for i := 0; i < numScans; i++ {
@@ -348,44 +365,73 @@ func (d *Device) scan(options lidar.ScanOptions) (lidar.Measurements, error) {
 
 			nodeAngle := (float64(node.GetAngle_z_q14()) * 90 / (1 << 14))
 			nodeDistance := float64(node.GetDist_mm_q2()) / 4
-			measurements = append(measurements, lidar.NewMeasurement(nodeAngle, nodeDistance/1000))
-		}
-	}
-	if len(measurements) == 0 {
-		return nil, nil
-	}
-	if options.NoFilter {
-		return measurements, nil
-	}
-	sort.Stable(measurements)
-	filteredMeasurements := make(lidar.Measurements, 0, len(measurements))
 
-	minAngleDiff, maxDistDiff := d.filterParams()
-	prev := measurements[0]
-	detectedRay := false
-	for mIdx := 1; mIdx < len(measurements); mIdx++ {
-		curr := measurements[mIdx]
-		currAngle := curr.AngleDeg()
-		prevAngle := prev.AngleDeg()
-		currDist := curr.Distance()
-		prevDist := prev.Distance()
-		if math.Abs(currAngle-prevAngle) < minAngleDiff {
-			if math.Abs(currDist-prevDist) > maxDistDiff {
-				detectedRay = true
-				continue
+			err := pc.Set(pointFrom(rdkUtils.DegToRad(nodeAngle), rdkUtils.DegToRad(0), float64(nodeDistance)/1000, 255))
+			if err != nil {
+				return nil, err
 			}
 		}
-		prev = curr
-		if !detectedRay {
-			filteredMeasurements = append(filteredMeasurements, curr)
-		}
-		detectedRay = false
 	}
-	return filteredMeasurements, nil
+	if pc.Size() == 0 {
+		return nil, nil
+	}
+	return pc, nil
+}
+
+func (d *Device) savePCDFile(timeStamp time.Time, pc pointcloud.PointCloud) error {
+	f, err := os.Create("data/rplidar_data_" + timeStamp.UTC().Format("2006-01-02T15_04_05.0000") + ".pcd")
+	if err != nil {
+		return err
+	}
+
+	w := bufio.NewWriter(f)
+	if err = pc.ToPCD(w); err != nil {
+		return err
+	}
+	if err = w.Flush(); err != nil {
+		return err
+	}
+	return f.Close()
+}
+
+func (d *Device) getPointCloud(ctx context.Context) (pointcloud.PointCloud, time.Time, error) {
+	if !d.started {
+		d.Start()
+	}
+
+	// discard scans for warmup
+	if !d.scannedOnce {
+		d.scannedOnce = true
+		if _, err := d.scan(ctx, d.warmupNumDiscardedScans); err != nil {
+			return nil, time.Now(), err
+		}
+		utils.SelectContextOrWait(ctx, time.Second)
+	}
+
+	pc, err := d.scan(ctx, d.defaultNumScans)
+	if err != nil {
+		return nil, time.Now(), err
+	}
+	return pc, time.Now(), nil
+}
+
+func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Point {
+	ea := spatialmath.NewEulerAngles()
+	ea.Yaw = yaw
+	ea.Pitch = pitch
+
+	pose1 := spatialmath.NewPoseFromOrientation(r3.Vector{0, 0, 0}, ea)
+	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{distance, 0, 0})
+	p := spatialmath.Compose(pose1, pose2).Point()
+
+	pc := pointcloud.NewBasicPoint(p.X*1000, p.Y*1000, p.Z*1000).SetIntensity(uint16(reflectivity) * 255)
+	pc = pc.SetColor(color.NRGBA{255, 0, 0, 255})
+
+	return pc
 }
 
 // AngularResolution returns the highest angular resolution the device offers.
-func (d *Device) AngularResolution(ctx context.Context) (float64, error) {
+func (d *Device) AngularResolution() (float64, error) {
 	switch d.model {
 	case modelA1:
 		return .9, nil
@@ -394,4 +440,66 @@ func (d *Device) AngularResolution(ctx context.Context) (float64, error) {
 	default:
 		return 1, nil
 	}
+}
+
+// Next grabs the next image.
+func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
+	pc, _, err := d.getPointCloud(ctx)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	minX := 0.0
+	minY := 0.0
+
+	maxX := 0.0
+	maxY := 0.0
+
+	pc.Iterate(func(p pointcloud.Point) bool {
+		pos := p.Position()
+		minX = math.Min(minX, pos.X)
+		maxX = math.Max(maxX, pos.X)
+		minY = math.Min(minY, pos.Y)
+		maxY = math.Max(maxY, pos.Y)
+		return true
+	})
+
+	width := 800
+	height := 800
+
+	scale := func(x, y float64) (int, int) {
+		return int(float64(width) * ((x - minX) / (maxX - minX))),
+			int(float64(height) * ((y - minY) / (maxY - minY)))
+	}
+
+	img := image.NewNRGBA(image.Rect(0, 0, width, height))
+
+	set := func(xpc, ypc float64, clr color.NRGBA) {
+		x, y := scale(xpc, ypc)
+		img.SetNRGBA(x, y, clr)
+	}
+
+	pc.Iterate(func(p pointcloud.Point) bool {
+		set(p.Position().X, p.Position().Y, color.NRGBA{255, 0, 0, 255})
+		return true
+	})
+
+	centerSize := .1
+	for x := -1 * centerSize; x < centerSize; x += .01 {
+		for y := -1 * centerSize; y < centerSize; y += .01 {
+			set(x, y, color.NRGBA{0, 255, 0, 255})
+		}
+	}
+
+	return img, nil, nil
+}
+
+// Close stops the device and disposes of the driver.
+func (d *Device) Close(ctx context.Context) error {
+	if d.driver != nil {
+		d.Stop()
+		gen.RPlidarDriverDisposeDriver(d.driver)
+		d.driver = nil
+	}
+	return nil
 }

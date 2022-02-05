@@ -29,6 +29,8 @@ vendor/
 
 # Test data
 coverage.txt
+*.las
+*.pcd
 
 *~
 *#
@@ -39,7 +41,7 @@ coverage.txt
 # act
 .secrets
 
-/data/
+/data*
 out/
 .idea/*
 bin/
@@ -50,3 +52,5 @@ bin/
 
 librplidar_sdk.a
 **/sdk/output
+
+main

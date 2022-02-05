@@ -3,15 +3,18 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"time"
 
-	"github.com/edaniels/golog"
 	"go.uber.org/multierr"
-	"go.viam.com/core/grpc/client"
-	"go.viam.com/core/lidar"
-	"go.viam.com/core/rlog"
+
+	"github.com/edaniels/golog"
+	_ "go.viam.com/rdk/component/camera/register"
+	"go.viam.com/rdk/grpc/client"
+	"go.viam.com/rdk/rlog"
 	"go.viam.com/utils"
+	"go.viam.com/utils/rpc"
 )
 
 func main() {
@@ -22,7 +25,7 @@ var logger = rlog.Logger.Named("client")
 
 // Arguments for the command.
 type Arguments struct {
-	DeviceAddress string `flag:"device,required,default=localhost:4444,usage=device address"`
+	DeviceAddress string `flag:"device,required,default=localhost:8081,usage=device address"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -34,57 +37,35 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	return runClient(ctx, argsParsed.DeviceAddress, logger)
 }
 
-func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) (err error) {
-	robotClient, err := client.NewClient(ctx, deviceAddress, logger)
-	if err != nil {
-		return err
-	}
-	defer func() {
-		err = multierr.Combine(err, robotClient.Close())
-	}()
-	names := robotClient.LidarNames()
-	if len(names) == 0 {
-		return errors.New("no lidar devices found")
-	}
-	lidarDevice := robotClient.LidarByName(names[0])
+func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) error {
 
-	if err := lidarDevice.Start(ctx); err != nil {
+	robotClient, err := client.New(ctx, deviceAddress, logger, client.WithDialOptions(rpc.WithInsecure()))
+	if err != nil {
 		return err
 	}
 
 	defer func() {
-		err = multierr.Combine(err, lidarDevice.Stop(context.Background()))
+		err = multierr.Combine(err, robotClient.Close(ctx))
 	}()
 
-	info, err := lidarDevice.Info(ctx)
-	if err != nil {
-		return err
+	cameraDevice, ok := robotClient.CameraByName(robotClient.CameraNames()[0])
+	if !ok {
+		return fmt.Errorf("failed to find component")
 	}
-	logger.Infow("lidar", "info", info)
 
-	ticker := time.NewTicker(time.Second)
-	defer ticker.Stop()
-	utils.ContextMainReadyFunc(ctx)()
+	// Run loop
 	for {
-		select {
-		case <-ctx.Done():
+		if !utils.SelectContextOrWait(ctx, 5*time.Second) {
 			return ctx.Err()
-		default:
 		}
 
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		case <-ticker.C:
-		}
-
-		measurements, err := lidarDevice.Scan(context.Background(), lidar.ScanOptions{})
+		pc, err := cameraDevice.NextPointCloud(ctx)
 		if err != nil {
 			if errors.Is(err, io.EOF) {
 				return nil
 			}
 			return err
 		}
-		logger.Infow("scanned", "num_measurements", len(measurements))
+		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
 }

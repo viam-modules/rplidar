@@ -3,9 +3,9 @@ package main
 import (
 	"context"
 	"errors"
-	"fmt"
+	"time"
 
-	"go.viam.com/rdk/services/web"
+	"go.uber.org/multierr"
 	"go.viam.com/rplidar"
 
 	"github.com/edaniels/golog"
@@ -15,15 +15,13 @@ import (
 	"go.viam.com/rdk/usb"
 	"go.viam.com/utils"
 
-	"go.viam.com/rdk/grpc/client"
 	robotimpl "go.viam.com/rdk/robot/impl"
-	webserver "go.viam.com/rdk/web/server"
-	"go.viam.com/utils/rpc"
 )
 
 var (
 	defaultPort = 8081
-	logger      = rlog.Logger.Named("server")
+	logger      = rlog.Logger.Named("save_pcd_files")
+	name        = "rplidar"
 )
 
 func main() {
@@ -65,16 +63,16 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 
 	// Create rplidar component
 	lidarDevice := config.Component{
-		Name:       "rplidar",
+		Name:       name,
 		Type:       config.ComponentTypeCamera,
 		Model:      rplidar.ModelName,
 		Attributes: config.AttributeMap{"device_path": usbDevices[0].Path},
 	}
 
-	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)
+	return savePCDFiles(ctx, int(argsParsed.Port), lidarDevice, logger)
 }
 
-func runServer(ctx context.Context, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
+func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
 
 	metadataSvc, err := service.New()
 	if err != nil {
@@ -83,12 +81,26 @@ func runServer(ctx context.Context, port int, lidarComponent config.Component, l
 	ctx = service.ContextWithService(ctx, metadataSvc)
 
 	cfg := &config.Config{Components: []config.Component{lidarComponent}}
-	myRobot, err := robotimpl.New(ctx, cfg, logger, client.WithDialOptions(rpc.WithInsecure()))
+	myRobot, err := robotimpl.New(ctx, cfg, logger)
 	if err != nil {
 		return err
 	}
 
-	options := web.NewOptions()
-	options.Network = config.NetworkConfig{BindAddress: fmt.Sprintf(":%d", port)}
-	return webserver.RunWeb(ctx, myRobot, options, logger)
+	rplidar, ok := myRobot.CameraByName(name)
+	if !ok {
+		return errors.New("no rplidar found with name: " + name)
+	}
+
+	// Run loop
+	for {
+		if !utils.SelectContextOrWait(ctx, time.Second) {
+			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
+		}
+
+		pc, err := rplidar.NextPointCloud(ctx)
+		if err != nil {
+			return multierr.Combine(err, myRobot.Close(ctx))
+		}
+		logger.Infow("scanned", "pointcloud_size", pc.Size())
+	}
 }
