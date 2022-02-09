@@ -93,7 +93,7 @@ func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component
 
 	// Run loop
 	for {
-		if !utils.SelectContextOrWait(ctx, time.Second) {
+		if !utils.SelectContextOrWait(ctx, 10*time.Millisecond) {
 			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
 		}
 
@@ -101,6 +101,11 @@ func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component
 		if err != nil {
 			return multierr.Combine(err, myRobot.Close(ctx))
 		}
-		logger.Infow("scanned", "pointcloud_size", pc.Size())
+
+		if pc != nil {
+			logger.Infow("scanned", "pointcloud_size", pc.Size())
+		} else {
+			logger.Infow("warning error reading pcd, skipping")
+		}
 	}
 }
