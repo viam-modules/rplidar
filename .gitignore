@@ -41,7 +41,6 @@ coverage.txt
 # act
 .secrets
 
-/data*
 out/
 .idea/*
 bin/

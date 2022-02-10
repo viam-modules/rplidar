@@ -19,9 +19,10 @@ import (
 )
 
 var (
-	defaultPort = 8081
-	logger      = rlog.Logger.Named("save_pcd_files")
-	name        = "rplidar"
+	defaultTimeDelta = 10
+	defaultPort      = 8081
+	logger           = rlog.Logger.Named("save_pcd_files")
+	name             = "rplidar"
 )
 
 func main() {
@@ -30,7 +31,8 @@ func main() {
 
 // Arguments for the command.
 type Arguments struct {
-	Port       utils.NetPortFlag `flag:"0"`
+	TimeDelta  int               `flag:"0"`
+	Port       utils.NetPortFlag `flag:"1"`
 	DevicePath string            `flag:"device,usage=device path"`
 }
 
@@ -41,9 +43,18 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return err
 	}
 
+	if argsParsed.TimeDelta == 0 {
+		logger.Debugf("using default time delta %d ", defaultTimeDelta)
+		argsParsed.TimeDelta = defaultTimeDelta
+	} else {
+		logger.Debugf("using user defined time delta %d ", argsParsed.TimeDelta)
+	}
+
 	if argsParsed.Port == 0 {
 		logger.Debugf("using default port %d ", defaultPort)
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
+	} else {
+		logger.Debugf("using user defined port %d ", argsParsed.Port)
 	}
 
 	usbDevices := usb.Search(
@@ -69,10 +80,10 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		Attributes: config.AttributeMap{"device_path": usbDevices[0].Path},
 	}
 
-	return savePCDFiles(ctx, int(argsParsed.Port), lidarDevice, logger)
+	return savePCDFiles(ctx, int(argsParsed.TimeDelta), int(argsParsed.Port), lidarDevice, logger)
 }
 
-func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
+func savePCDFiles(ctx context.Context, timeDelta int, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
 
 	metadataSvc, err := service.New()
 	if err != nil {
@@ -91,9 +102,13 @@ func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component
 		return errors.New("no rplidar found with name: " + name)
 	}
 
+	if !utils.SelectContextOrWait(ctx, time.Second) {
+		return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
+	}
+
 	// Run loop
 	for {
-		if !utils.SelectContextOrWait(ctx, 10*time.Millisecond) {
+		if !utils.SelectContextOrWait(ctx, time.Duration(timeDelta)*time.Millisecond) {
 			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
 		}
 
@@ -101,11 +116,6 @@ func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component
 		if err != nil {
 			return multierr.Combine(err, myRobot.Close(ctx))
 		}
-
-		if pc != nil {
-			logger.Infow("scanned", "pointcloud_size", pc.Size())
-		} else {
-			logger.Infow("warning error reading pcd, skipping")
-		}
+		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
 }

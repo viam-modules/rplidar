@@ -335,7 +335,7 @@ func (d *Device) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, err
 	defer d.mu.Unlock()
 	pc, timeStamp, err := d.getPointCloud(ctx)
 	if err != nil {
-		return nil, nil//err
+		return nil, err
 	}
 	if err = d.savePCDFile(timeStamp, pc); err != nil {
 		return nil, err
