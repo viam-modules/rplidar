@@ -11,13 +11,13 @@ The below will only work for Viam, Inc. employees right now. The C++ code is ind
     * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
 3. There are two options: Run a server/client, or a script that saves PCD files into a directory. See instructions for RPI/Debian and OSX below:
 
-### RPI (Debian)
+**RPI (Debian)**
 * Server/Client: `go run cmd/server/main.go`
     * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
     * Run the client in a separate terminal: `go run cmd/client/main.go`
 * Script that saves PCD files: `go run cmd/savepcdfiles/main.go`
 
-### OSX
+**OSX**
 
 1. Find the device path name by following [these instructions](https://stackoverflow.com/questions/48291366/how-to-find-dev-name-of-usb-device-for-serial-reading-on-mac-os), further denoted as `YOUR_RPLIDAR_PATH`
 2. Run the server/client, or a script that saves PCD files into a directory:
