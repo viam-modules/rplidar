@@ -1,28 +1,27 @@
 
-## Dependencies for golang
-
+# rplidar
 The below will only work for Viam, Inc. employees right now. The C++ code is independent however.
 
-Make sure the following is in your shell configuration:
-```
-export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*
-```
+## Getting started
 
-Also run 
-```
-git config --global url.ssh://git@github.com/.insteadOf https://github.com/
-```
-
-_TODO: Needs an update of dependencies to latest version and refactoring._
-
-# Getting started
-NOTE: Doesn't work on osx, rplidar will not be recognized as a usb device.
-
-Currently only tested on an RPI:
 1. `make`
-2. Make sure you run the commands above
-3. Create a folder to save data in form of pcd files in: `mkdir data`
-4. `go run -tags=pi cmd/server/main.go `
-5. Save data or view the output:
+2. Dependencies for golang
+    * Make sure the following is in your shell configuration:
+        * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
+    * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
+3. There are two options: Run a server/client, or a script that saves PCD files into a directory. See instructions for RPI/Debian and OSX below:
+
+### RPI (Debian)
+* Server/Client: `go run cmd/server/main.go`
     * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
-    * Run the client in a separate terminal: `go run -tags=pi cmd/client/main.go`
+    * Run the client in a separate terminal: `go run cmd/client/main.go`
+* Script that saves PCD files: `go run cmd/savepcdfiles/main.go`
+
+### OSX
+
+1. Find the device path name by following [these instructions](https://stackoverflow.com/questions/48291366/how-to-find-dev-name-of-usb-device-for-serial-reading-on-mac-os), further denoted as `YOUR_RPLIDAR_PATH`
+2. Run the server/client, or a script that saves PCD files into a directory:
+    * Server/Client: `go run cmd/server/main.go -device YOUR_RPLIDAR_PATH`
+        * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
+        * Run the client in a separate terminal: `go run cmd/client/main.go`
+    * Script that saves PCD files: `go run cmd/savepcdfiles/main.go -device YOUR_RPLIDAR_PATH`

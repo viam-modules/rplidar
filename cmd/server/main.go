@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"go.viam.com/rdk/services/web"
 	"go.viam.com/rplidar"
@@ -22,8 +24,9 @@ import (
 )
 
 var (
-	defaultPort = 8081
-	logger      = rlog.Logger.Named("server")
+	defaultPort       = 8081
+	defaultDataFolder = "data"
+	logger            = rlog.Logger.Named("server")
 )
 
 func main() {
@@ -34,6 +37,7 @@ func main() {
 type Arguments struct {
 	Port       utils.NetPortFlag `flag:"0"`
 	DevicePath string            `flag:"device,usage=device path"`
+	DataFolder string            `flag:"datafolder,usage=datafolder path"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -48,19 +52,33 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
 	}
 
-	usbDevices := usb.Search(
-		usb.SearchFilter{},
-		func(vendorID, productID int) bool {
-			return vendorID == rplidar.USBInfo.Vendor && productID == rplidar.USBInfo.Product
-		})
+	devicePath := argsParsed.DevicePath
+	if devicePath == "" {
+		usbDevices := usb.Search(
+			usb.SearchFilter{},
+			func(vendorID, productID int) bool {
+				return vendorID == rplidar.USBInfo.Vendor && productID == rplidar.USBInfo.Product
+			})
 
-	if len(usbDevices) != 0 {
-		logger.Debugf("detected %d lidar devices", len(usbDevices))
-		for _, comp := range usbDevices {
-			logger.Debug(comp)
+		if len(usbDevices) != 0 {
+			logger.Debugf("detected %d lidar devices", len(usbDevices))
+			for _, comp := range usbDevices {
+				logger.Debug(comp)
+			}
+			devicePath = usbDevices[0].Path
+		} else {
+			return errors.New("no usb devices found")
 		}
+	}
+
+	if argsParsed.DataFolder == "" {
+		logger.Debugf("using default data folder '%s' ", defaultDataFolder)
+		argsParsed.DataFolder = defaultDataFolder
 	} else {
-		return errors.New("no usb devices found")
+		logger.Debugf("using user defined data folder %s", argsParsed.DataFolder)
+	}
+	if err := os.MkdirAll(filepath.Join(".", argsParsed.DataFolder), os.ModePerm); err != nil {
+		return errors.New("can not create a new directory named: " + argsParsed.DataFolder)
 	}
 
 	// Create rplidar component
