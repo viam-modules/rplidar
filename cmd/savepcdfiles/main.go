@@ -21,10 +21,11 @@ import (
 )
 
 var (
-	defaultPort       = 8081
-	defaultDataFolder = "data"
-	logger            = rlog.Logger.Named("save_pcd_files")
-	name              = "rplidar"
+	defaultTimeDeltaMilliseconds = 10
+	defaultPort                  = 8081
+	defaultDataFolder            = "data"
+	logger                       = rlog.Logger.Named("save_pcd_files")
+	name                         = "rplidar"
 )
 
 func main() {
@@ -33,9 +34,10 @@ func main() {
 
 // Arguments for the command.
 type Arguments struct {
-	Port       utils.NetPortFlag `flag:"0"`
-	DevicePath string            `flag:"device,usage=device path"`
-	DataFolder string            `flag:"datafolder,usage=datafolder path"`
+	TimeDeltaMilliseconds int               `flag:"0"`
+	Port                  utils.NetPortFlag `flag:"1"`
+	DevicePath            string            `flag:"device,usage=device path"`
+	DataFolder            string            `flag:"datafolder,usage=datafolder path"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -45,9 +47,18 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return err
 	}
 
+	if argsParsed.TimeDeltaMilliseconds == 0 {
+		logger.Debugf("using default time delta %d ", defaultTimeDeltaMilliseconds)
+		argsParsed.TimeDeltaMilliseconds = defaultTimeDeltaMilliseconds
+	} else {
+		logger.Debugf("using user defined time delta %d ", argsParsed.TimeDeltaMilliseconds)
+	}
+
 	if argsParsed.Port == 0 {
 		logger.Debugf("using default port %d ", defaultPort)
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
+	} else {
+		logger.Debugf("using user defined port %d ", argsParsed.Port)
 	}
 
 	devicePath := argsParsed.DevicePath
@@ -87,10 +98,10 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		Attributes: config.AttributeMap{"device_path": devicePath},
 	}
 
-	return savePCDFiles(ctx, int(argsParsed.Port), lidarDevice, logger)
+	return savePCDFiles(ctx, argsParsed.TimeDeltaMilliseconds, int(argsParsed.Port), lidarDevice, logger)
 }
 
-func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
+func savePCDFiles(ctx context.Context, timeDeltaMilliseconds int, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
 
 	metadataSvc, err := service.New()
 	if err != nil {
@@ -109,9 +120,14 @@ func savePCDFiles(ctx context.Context, port int, lidarComponent config.Component
 		return errors.New("no rplidar found with name: " + name)
 	}
 
+	// Wait one second to allow rplidar to finish initializing
+	if !utils.SelectContextOrWait(ctx, time.Second) {
+		return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
+	}
+
 	// Run loop
 	for {
-		if !utils.SelectContextOrWait(ctx, time.Second) {
+		if !utils.SelectContextOrWait(ctx, time.Duration(timeDeltaMilliseconds)*time.Millisecond) {
 			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
 		}
 
