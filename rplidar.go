@@ -190,8 +190,8 @@ func NewRPLidar(logger golog.Logger, port int, devicePath string) (camera.Camera
 		serialNumber:            serialNumStr,
 		firmwareVersion:         firmwareVer,
 		hardwareRevision:        hardwareRev,
-		defaultNumScans:         3,
-		warmupNumDiscardedScans: 10,
+		defaultNumScans:         1,
+		warmupNumDiscardedScans: 5,
 	}
 	d.Start()
 	return d, nil
@@ -399,13 +399,13 @@ func (d *Device) getPointCloud(ctx context.Context) (pointcloud.PointCloud, time
 		d.Start()
 	}
 
-	// discard scans for warmup
+	// wait and then discard scans for warmup
 	if !d.scannedOnce {
 		d.scannedOnce = true
+		utils.SelectContextOrWait(ctx, time.Duration(d.warmupNumDiscardedScans)*time.Second)
 		if _, err := d.scan(ctx, d.warmupNumDiscardedScans); err != nil {
 			return nil, time.Now(), err
 		}
-		utils.SelectContextOrWait(ctx, time.Second)
 	}
 
 	pc, err := d.scan(ctx, d.defaultNumScans)

@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"math"
 	"os"
 	"path/filepath"
 	"time"
@@ -11,9 +12,11 @@ import (
 	"go.viam.com/rplidar"
 
 	"github.com/edaniels/golog"
+	"go.viam.com/rdk/component/camera"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/metadata/service"
 	"go.viam.com/rdk/rlog"
+	"go.viam.com/rdk/robot"
 	"go.viam.com/rdk/usb"
 	"go.viam.com/utils"
 
@@ -21,7 +24,7 @@ import (
 )
 
 var (
-	defaultTimeDeltaMilliseconds = 10
+	defaultTimeDeltaMilliseconds = 100
 	defaultPort                  = 8081
 	defaultDataFolder            = "data"
 	logger                       = rlog.Logger.Named("save_pcd_files")
@@ -34,8 +37,8 @@ func main() {
 
 // Arguments for the command.
 type Arguments struct {
-	TimeDeltaMilliseconds int               `flag:"0"`
-	Port                  utils.NetPortFlag `flag:"1"`
+	Port                  utils.NetPortFlag `flag:"0"`
+	TimeDeltaMilliseconds int               `flag:"delta,usage=delta ms"`
 	DevicePath            string            `flag:"device,usage=device path"`
 	DataFolder            string            `flag:"datafolder,usage=datafolder path"`
 }
@@ -91,17 +94,12 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 
 	// Create rplidar component
-	lidarDevice := config.Component{
+	lidarComponent := config.Component{
 		Name:       name,
 		Type:       config.ComponentTypeCamera,
 		Model:      rplidar.ModelName,
 		Attributes: config.AttributeMap{"device_path": devicePath},
 	}
-
-	return savePCDFiles(ctx, argsParsed.TimeDeltaMilliseconds, int(argsParsed.Port), lidarDevice, logger)
-}
-
-func savePCDFiles(ctx context.Context, timeDeltaMilliseconds int, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
 
 	metadataSvc, err := service.New()
 	if err != nil {
@@ -120,20 +118,32 @@ func savePCDFiles(ctx context.Context, timeDeltaMilliseconds int, port int, lida
 		return errors.New("no rplidar found with name: " + name)
 	}
 
-	// Wait one second to allow rplidar to finish initializing
-	if !utils.SelectContextOrWait(ctx, time.Second) {
-		return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
+	// Based on empirical data, we can see that the rplidar collects data at a rate of 15Hz,
+	// which is ~ 66ms per scan. This issues a warning to the user, in case they're expecting
+	// to receive data at a higher rate than what is technically possible.
+	scanTimeDelta := argsParsed.TimeDeltaMilliseconds
+	estimatedTimePerScan := 66
+	if scanTimeDelta < int(estimatedTimePerScan) {
+		logger.Warnf("the expected scan rate of deltaT=%v is too small, has to be at least %v", scanTimeDelta, estimatedTimePerScan)
 	}
 
-	// Run loop
+	return savePCDFiles(ctx, myRobot, rplidar, argsParsed.TimeDeltaMilliseconds, logger)
+}
+
+func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.Camera, timeDeltaMilliseconds int, logger golog.Logger) (err error) {
 	for {
-		if !utils.SelectContextOrWait(ctx, time.Duration(timeDeltaMilliseconds)*time.Millisecond) {
+		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(timeDeltaMilliseconds)))*time.Millisecond) {
 			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
 		}
 
 		pc, err := rplidar.NextPointCloud(ctx)
 		if err != nil {
-			return multierr.Combine(err, myRobot.Close(ctx))
+			if err.Error() == "bad scan: OpTimeout" {
+				logger.Warnf("Skipping this scan due to error: %v", err)
+				continue
+			} else {
+				return multierr.Combine(err, myRobot.Close(ctx))
+			}
 		}
 		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
