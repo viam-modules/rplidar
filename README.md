@@ -20,6 +20,7 @@ The below will only work for Viam, Inc. employees right now. The C++ code is ind
 **OSX**
 
 1. Find the device path name by following [these instructions](https://stackoverflow.com/questions/48291366/how-to-find-dev-name-of-usb-device-for-serial-reading-on-mac-os), further denoted as `YOUR_RPLIDAR_PATH`
+    * NOTE: It will likely be this path: `/dev/tty.SLAB_USBtoUART`
 2. Run the server/client, or a script that saves PCD files into a directory:
     * Server/Client: `go run cmd/server/main.go -device YOUR_RPLIDAR_PATH`
         * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or

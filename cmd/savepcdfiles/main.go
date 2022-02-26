@@ -95,10 +95,13 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 
 	// Create rplidar component
 	lidarComponent := config.Component{
-		Name:       name,
-		Type:       config.ComponentTypeCamera,
-		Model:      rplidar.ModelName,
-		Attributes: config.AttributeMap{"device_path": devicePath},
+		Name:  name,
+		Type:  config.ComponentTypeCamera,
+		Model: rplidar.ModelName,
+		Attributes: config.AttributeMap{
+			"device_path": devicePath,
+			"data_folder": argsParsed.DataFolder,
+		},
 	}
 
 	metadataSvc, err := service.New()

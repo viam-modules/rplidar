@@ -86,7 +86,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		Name:       "rplidar",
 		Type:       config.ComponentTypeCamera,
 		Model:      rplidar.ModelName,
-		Attributes: config.AttributeMap{"device_path": usbDevices[0].Path},
+		Attributes: config.AttributeMap{"device_path": devicePath},
 	}
 
 	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)

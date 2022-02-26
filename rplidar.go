@@ -54,7 +54,11 @@ func init() {
 			if devicePath == "" {
 				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
 			}
-			return NewRPLidar(logger, port, devicePath)
+			dataFolder := config.Attributes.String("data_folder")
+			if dataFolder == "" {
+				return nil, errors.New("need to specify a folder for the lidar data")
+			}
+			return NewRPLidar(logger, port, devicePath, dataFolder)
 		}})
 }
 
@@ -121,7 +125,7 @@ func (r ResultError) Error() string {
 }
 
 // NewRPLidar returns a new RPLidar device at the given path.
-func NewRPLidar(logger golog.Logger, port int, devicePath string) (camera.Camera, error) {
+func NewRPLidar(logger golog.Logger, port int, devicePath string, dataFolder string) (camera.Camera, error) {
 	var driver gen.RPlidarDriver
 	devInfo := gen.NewRplidar_response_device_info_t()
 	defer gen.DeleteRplidar_response_device_info_t(devInfo)
@@ -192,6 +196,7 @@ func NewRPLidar(logger golog.Logger, port int, devicePath string) (camera.Camera
 		hardwareRevision:        hardwareRev,
 		defaultNumScans:         1,
 		warmupNumDiscardedScans: 5,
+		dataFolder:              dataFolder,
 	}
 	d.Start()
 	return d, nil
@@ -208,6 +213,7 @@ type Device struct {
 	bounds                  *r3.Vector
 	defaultNumScans         int
 	warmupNumDiscardedScans int
+	dataFolder              string
 
 	logger golog.Logger
 
@@ -379,7 +385,7 @@ func (d *Device) scan(ctx context.Context, numScans int) (pointcloud.PointCloud,
 }
 
 func (d *Device) savePCDFile(timeStamp time.Time, pc pointcloud.PointCloud) error {
-	f, err := os.Create("data/rplidar_data_" + timeStamp.UTC().Format("2006-01-02T15_04_05.0000") + ".pcd")
+	f, err := os.Create(d.dataFolder + "/rplidar_data_" + timeStamp.UTC().Format("2006-01-02T15_04_05.0000") + ".pcd")
 	if err != nil {
 		return err
 	}
