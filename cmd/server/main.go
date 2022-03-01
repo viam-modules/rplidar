@@ -27,6 +27,7 @@ var (
 	defaultPort       = 8081
 	defaultDataFolder = "data"
 	logger            = rlog.Logger.Named("server")
+	name              = "rplidar"
 )
 
 func main() {
@@ -50,6 +51,8 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	if argsParsed.Port == 0 {
 		logger.Debugf("using default port %d ", defaultPort)
 		argsParsed.Port = utils.NetPortFlag(defaultPort)
+	} else {
+		logger.Debugf("using user defined port %d ", argsParsed.Port)
 	}
 
 	devicePath := argsParsed.DevicePath
@@ -83,10 +86,13 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 
 	// Create rplidar component
 	lidarDevice := config.Component{
-		Name:       "rplidar",
-		Type:       config.ComponentTypeCamera,
-		Model:      rplidar.ModelName,
-		Attributes: config.AttributeMap{"device_path": devicePath},
+		Name:  name,
+		Type:  config.ComponentTypeCamera,
+		Model: rplidar.ModelName,
+		Attributes: config.AttributeMap{
+			"device_path": devicePath,
+			"data_folder": argsParsed.DataFolder,
+		},
 	}
 
 	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)
