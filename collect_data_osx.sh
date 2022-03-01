@@ -1,6 +1,5 @@
 #!/bin/sh
 set -o errexit
-# set -o verbose
 
 # ---- Edit based on your needs:
 MONTH="Feb"
@@ -11,9 +10,9 @@ YEAR="2022"
 DESCRIPTION="viam_3rd_floor"
 
 # This script works for osx only, and assumes the path to the rplidar is this:
-# Determine the path for your device using these instructions:
-# https://stackoverflow.com/questions/48291366/how-to-find-dev-name-of-usb-device-for-serial-reading-on-mac-os
 RPLIDAR_PATH=/dev/tty.SLAB_USBtoUART
+# If this does not apply to your case, determine the path for your device using these instructions:
+# https://stackoverflow.com/questions/48291366/how-to-find-dev-name-of-usb-device-for-serial-reading-on-mac-os
 # ----
 
 DATA_DIRECTORY_NAME="data_${MONTH}_${DAY}_${YEAR}_${DESCRIPTION}"
