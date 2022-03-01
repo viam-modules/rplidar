@@ -26,3 +26,5 @@ The below will only work for Viam, Inc. employees right now. The C++ code is ind
         * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
         * Run the client in a separate terminal: `go run cmd/client/main.go`
     * Script that saves PCD files: `go run cmd/savepcdfiles/main.go -device YOUR_RPLIDAR_PATH`
+
+An example of how to run the rplidar on osx can be found in [collect_data_osx.sh](./collect_data_osx.sh).
