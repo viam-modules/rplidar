@@ -2,12 +2,12 @@
 set -o errexit
 
 # ---- Edit based on your needs:
-MONTH="Feb"
-DAY="25"
+MONTH="Mar"
+DAY="08"
 YEAR="2022"
 
 # A keyword that describes the qualities of the dataset
-DESCRIPTION="outside"
+DESCRIPTION="data_testing"
 
 # This script works for osx only, and assumes the path to the rplidar is this:
 RPLIDAR_PATH=/dev/tty.SLAB_USBtoUART

@@ -5,8 +5,6 @@ import (
 	"errors"
 
 	"math"
-	"os"
-	"path/filepath"
 	"time"
 
 	"go.uber.org/multierr"
