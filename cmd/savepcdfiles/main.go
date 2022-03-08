@@ -3,7 +3,10 @@ package main
 import (
 	"context"
 	"errors"
+
 	"math"
+	"os"
+	"path/filepath"
 	"time"
 
 	"go.uber.org/multierr"
@@ -44,6 +47,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	if err := utils.ParseFlags(args, &argsParsed); err != nil {
 		return err
 	}
+
 	scanTimeDelta := helper.GetTimeDeltaMilliseconds(argsParsed.TimeDeltaMilliseconds, defaultTimeDeltaMilliseconds, logger)
 
 	lidarDevice, err := helper.CreateRplidarComponent(name,
@@ -79,6 +83,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.Camera, timeDeltaMilliseconds int, logger golog.Logger) (err error) {
 	for {
 		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(timeDeltaMilliseconds)))*time.Millisecond) {
+
 			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
 		}
 
