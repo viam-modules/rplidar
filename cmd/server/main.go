@@ -2,17 +2,15 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 
 	"go.viam.com/rdk/services/web"
 	"go.viam.com/rplidar"
+	"go.viam.com/rplidar/helper"
 
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/config"
-	"go.viam.com/rdk/metadata/service"
 	"go.viam.com/rdk/rlog"
-	"go.viam.com/rdk/usb"
 	"go.viam.com/utils"
 
 	"go.viam.com/rdk/grpc/client"
@@ -22,8 +20,10 @@ import (
 )
 
 var (
-	defaultPort = 8081
-	logger      = rlog.Logger.Named("server")
+	defaultPort       = 8081
+	defaultDataFolder = "data"
+	logger            = rlog.Logger.Named("server")
+	name              = "rplidar"
 )
 
 func main() {
@@ -34,6 +34,7 @@ func main() {
 type Arguments struct {
 	Port       utils.NetPortFlag `flag:"0"`
 	DevicePath string            `flag:"device,usage=device path"`
+	DataFolder string            `flag:"datafolder,usage=datafolder path"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -42,47 +43,29 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	if err := utils.ParseFlags(args, &argsParsed); err != nil {
 		return err
 	}
+	argsParsed.Port = helper.GetPort(argsParsed.Port, utils.NetPortFlag(defaultPort), logger)
 
-	if argsParsed.Port == 0 {
-		logger.Debugf("using default port %d ", defaultPort)
-		argsParsed.Port = utils.NetPortFlag(defaultPort)
-	}
-
-	usbDevices := usb.Search(
-		usb.SearchFilter{},
-		func(vendorID, productID int) bool {
-			return vendorID == rplidar.USBInfo.Vendor && productID == rplidar.USBInfo.Product
-		})
-
-	if len(usbDevices) != 0 {
-		logger.Debugf("detected %d lidar devices", len(usbDevices))
-		for _, comp := range usbDevices {
-			logger.Debug(comp)
-		}
-	} else {
-		return errors.New("no usb devices found")
-	}
-
-	// Create rplidar component
-	lidarDevice := config.Component{
-		Name:       "rplidar",
-		Type:       config.ComponentTypeCamera,
-		Model:      rplidar.ModelName,
-		Attributes: config.AttributeMap{"device_path": usbDevices[0].Path},
+	lidarDevice, err := helper.CreateRplidarComponent(name,
+		rplidar.ModelName,
+		argsParsed.DevicePath,
+		argsParsed.DataFolder,
+		defaultDataFolder,
+		config.ComponentTypeCamera,
+		logger)
+	if err != nil {
+		return err
 	}
 
 	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)
 }
 
-func runServer(ctx context.Context, port int, lidarComponent config.Component, logger golog.Logger) (err error) {
-
-	metadataSvc, err := service.New()
+func runServer(ctx context.Context, port int, lidarDevice config.Component, logger golog.Logger) (err error) {
+	ctx, err = helper.GetServiceContext(ctx)
 	if err != nil {
 		return err
 	}
-	ctx = service.ContextWithService(ctx, metadataSvc)
 
-	cfg := &config.Config{Components: []config.Component{lidarComponent}}
+	cfg := &config.Config{Components: []config.Component{lidarDevice}}
 	myRobot, err := robotimpl.New(ctx, cfg, logger, client.WithDialOptions(rpc.WithInsecure()))
 	if err != nil {
 		return err
