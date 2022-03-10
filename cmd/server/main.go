@@ -6,7 +6,7 @@ import (
 
 	"go.viam.com/rdk/services/web"
 	"go.viam.com/rplidar"
-	"go.viam.com/rplidar/cmd/helper"
+	"go.viam.com/rplidar/helper"
 
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/config"

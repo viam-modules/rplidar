@@ -52,11 +52,11 @@ func init() {
 			port := config.Attributes.Int("port", 8081)
 			devicePath := config.Attributes.String("device_path")
 			if devicePath == "" {
-				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0")
+				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0)")
 			}
 			dataFolder := config.Attributes.String("data_folder")
 			if dataFolder == "" {
-				return nil, errors.New("need to specify a folder for the lidar data")
+				return nil, errors.New("need to set 'data_folder' to a valid storage location")
 			}
 			return NewRPLidar(logger, port, devicePath, dataFolder)
 		}})

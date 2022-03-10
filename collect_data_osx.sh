@@ -7,7 +7,7 @@ DAY="08"
 YEAR="2022"
 
 # A keyword that describes the qualities of the dataset
-DESCRIPTION="data_testing"
+DESCRIPTION="data_testing_rplidar"
 
 # This script works for osx only, and assumes the path to the rplidar is this:
 RPLIDAR_PATH=/dev/tty.SLAB_USBtoUART
