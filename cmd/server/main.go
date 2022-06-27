@@ -18,7 +18,7 @@ import (
 )
 
 var (
-	defaultPort       = 8081
+	defaultPort       = 4444
 	defaultDataFolder = "data"
 	logger            = rlog.Logger.Named("server")
 	name              = "rplidar"
