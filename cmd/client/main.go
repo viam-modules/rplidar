@@ -10,6 +10,7 @@ import (
 	"go.uber.org/multierr"
 
 	"github.com/edaniels/golog"
+	"go.viam.com/rdk/component/camera"
 	_ "go.viam.com/rdk/component/camera/register"
 	"go.viam.com/rdk/grpc/client"
 	"go.viam.com/rdk/rlog"
@@ -48,10 +49,12 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) e
 		err = multierr.Combine(err, robotClient.Close(ctx))
 	}()
 
-	cameraDevice, ok := robotClient.CameraByName(robotClient.CameraNames()[0])
-	if !ok {
+	res, err := robotClient.ResourceByName(camera.Named("rplidar"))
+	if err != nil {
 		return fmt.Errorf("failed to find component")
 	}
+
+	cameraDevice := res.(camera.Camera)
 
 	// Run loop
 	for {

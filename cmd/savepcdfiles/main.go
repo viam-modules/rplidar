@@ -53,13 +53,13 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		argsParsed.DevicePath,
 		argsParsed.DataFolder,
 		defaultDataFolder,
-		config.ComponentTypeCamera,
+		camera.SubtypeName,
 		logger)
 	if err != nil {
 		return err
 	}
 
-	ctx, err = helper.GetServiceContext(ctx)
+	ctx = context.Background() // , err = helper.GetServiceContext(ctx)
 	if err != nil {
 		return err
 	}
@@ -70,10 +70,12 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return err
 	}
 
-	rplidar, ok := myRobot.CameraByName(name)
-	if !ok {
+	res, err := myRobot.ResourceByName(camera.Named(name))
+	if err != nil {
 		return errors.New("no rplidar found with name: " + name)
 	}
+
+	rplidar := res.(camera.Camera)
 
 	return savePCDFiles(ctx, myRobot, rplidar, scanTimeDelta, logger)
 }
@@ -94,6 +96,7 @@ func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.
 				return multierr.Combine(err, myRobot.Close(ctx))
 			}
 		}
+
 		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
 }

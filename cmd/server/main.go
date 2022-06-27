@@ -2,21 +2,19 @@ package main
 
 import (
 	"context"
-	"fmt"
 
-	"go.viam.com/rdk/services/web"
 	"go.viam.com/rplidar"
 	"go.viam.com/rplidar/helper"
 
 	"github.com/edaniels/golog"
+	"go.viam.com/rdk/component/camera"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/rlog"
 	"go.viam.com/utils"
 
-	"go.viam.com/rdk/grpc/client"
 	robotimpl "go.viam.com/rdk/robot/impl"
-	webserver "go.viam.com/rdk/web/server"
-	"go.viam.com/utils/rpc"
+	"go.viam.com/rdk/robot/web"
+	weboptions "go.viam.com/rdk/robot/web/options"
 )
 
 var (
@@ -50,7 +48,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		argsParsed.DevicePath,
 		argsParsed.DataFolder,
 		defaultDataFolder,
-		config.ComponentTypeCamera,
+		camera.SubtypeName,
 		logger)
 	if err != nil {
 		return err
@@ -60,18 +58,24 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runServer(ctx context.Context, port int, lidarDevice config.Component, logger golog.Logger) (err error) {
-	ctx, err = helper.GetServiceContext(ctx)
+	ctx = context.Background() // , err = helper.GetServiceContext(ctx)
 	if err != nil {
 		return err
 	}
 
 	cfg := &config.Config{Components: []config.Component{lidarDevice}}
-	myRobot, err := robotimpl.New(ctx, cfg, logger, client.WithDialOptions(rpc.WithInsecure()))
+	//myRobot, err := robotimpl.New(ctx, cfg, logger, client.WithDialOptions(rpc.WithInsecure()))
+	myRobot, err := robotimpl.RobotFromConfig(ctx, cfg, logger)
 	if err != nil {
 		return err
 	}
 
-	options := web.NewOptions()
-	options.Network = config.NetworkConfig{BindAddress: fmt.Sprintf(":%d", port)}
-	return webserver.RunWeb(ctx, myRobot, options, logger)
+	// options := web.NewOptions()
+	// options.Network = config.NetworkConfig{BindAddress: fmt.Sprintf(":%d", port)}
+	options, err := weboptions.FromConfig(cfg)
+	if err != nil {
+		return err
+	}
+	options.Pprof = true
+	return web.RunWeb(ctx, myRobot, options, logger)
 }
