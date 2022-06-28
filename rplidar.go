@@ -32,6 +32,7 @@ const (
 	// ModelName is how the lidar will be registered into rdk.
 	ModelName      = "rplidar"
 	defaultTimeout = uint(1000)
+	DefaultPort    = 4444
 )
 
 var USBInfo = &usb.Identifier{
@@ -40,16 +41,9 @@ var USBInfo = &usb.Identifier{
 }
 
 func init() {
-	registry.RegisterComponent(
-		camera.Subtype,
-		ModelName,
-		registry.Component{Constructor: func(
-			ctx context.Context,
-			_ registry.Dependencies,
-			config config.Component,
-			logger golog.Logger,
-		) (interface{}, error) {
-			port := config.Attributes.Int("port", 8081)
+	registry.RegisterComponent(camera.Subtype, ModelName, registry.Component{
+		Constructor: func(ctx context.Context, _ registry.Dependencies, config config.Component, logger golog.Logger) (interface{}, error) {
+			port := config.Attributes.Int("port", DefaultPort)
 			devicePath := config.Attributes.String("device_path")
 			if devicePath == "" {
 				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0)")

@@ -59,7 +59,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return err
 	}
 
-	ctx = context.Background() // , err = helper.GetServiceContext(ctx)
+	//ctx = context.Background() // , err = helper.GetServiceContext(ctx)
 	if err != nil {
 		return err
 	}

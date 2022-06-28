@@ -18,7 +18,6 @@ import (
 )
 
 var (
-	defaultPort       = 4444
 	defaultDataFolder = "data"
 	logger            = rlog.Logger.Named("server")
 	name              = "rplidar"
@@ -41,7 +40,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	if err := utils.ParseFlags(args, &argsParsed); err != nil {
 		return err
 	}
-	argsParsed.Port = helper.GetPort(argsParsed.Port, utils.NetPortFlag(defaultPort), logger)
+	argsParsed.Port = helper.GetPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
 
 	lidarDevice, err := helper.CreateRplidarComponent(name,
 		rplidar.ModelName,
@@ -58,7 +57,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 }
 
 func runServer(ctx context.Context, port int, lidarDevice config.Component, logger golog.Logger) (err error) {
-	ctx = context.Background() // , err = helper.GetServiceContext(ctx)
+	//ctx = context.Background() // , err = helper.GetServiceContext(ctx)
 	if err != nil {
 		return err
 	}
