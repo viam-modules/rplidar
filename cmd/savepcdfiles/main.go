@@ -25,7 +25,6 @@ var (
 	defaultTimeDeltaMilliseconds = 100
 	defaultDataFolder            = "data"
 	logger                       = rlog.Logger.Named("save_pcd_files")
-	name                         = "rplidar"
 )
 
 func main() {
@@ -55,11 +54,6 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		defaultDataFolder,
 		camera.SubtypeName,
 		logger)
-	if err != nil {
-		return err
-	}
-
-	//ctx = context.Background() // , err = helper.GetServiceContext(ctx)
 	if err != nil {
 		return err
 	}

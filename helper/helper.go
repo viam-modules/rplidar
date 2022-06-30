@@ -46,7 +46,6 @@ func getDevicePath(devicePath string, logger golog.Logger) (string, error) {
 		usbDevices := usb.Search(
 			usb.SearchFilter{},
 			func(vendorID, productID int) bool {
-				//return true
 				return vendorID == rplidar.USBInfo.Vendor && productID == rplidar.USBInfo.Product
 			})
 
@@ -89,9 +88,9 @@ func CreateRplidarComponent(name, model, devicePath, dataFolder, defaultDataFold
 
 	lidarDevice := config.Component{
 		Namespace: "rdk",
-		Name:  name,
-		Type:  cameraType,
-		Model: model,
+		Name:      name,
+		Type:      cameraType,
+		Model:     model,
 		Attributes: config.AttributeMap{
 			"device_path": devicePath,
 			"data_folder": dataFolder,
