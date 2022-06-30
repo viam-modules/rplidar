@@ -82,10 +82,10 @@ func runServer(ctx context.Context, port int, lidarDevice config.Component, logg
 	defer func() {
 		rpl, err := camera.FromRobot(myRobot, "new-rplidar")
 		if err != nil {
-			return err
+			logger.Errorf("failed to get rplidar from robot: %s", err)
 		}
 		if err = viamutils.TryClose(ctx, rpl); err != nil {
-			return err
+			logger.Errorf("failed to close rplidar: %s", err)
 		}
 	}()
 
