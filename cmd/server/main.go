@@ -16,6 +16,7 @@ import (
 	robotimpl "go.viam.com/rdk/robot/impl"
 	"go.viam.com/rdk/robot/web"
 	weboptions "go.viam.com/rdk/robot/web/options"
+	viamutils "go.viam.com/utils"
 )
 
 var (
@@ -42,7 +43,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 	argsParsed.Port = helper.GetPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
 
-	lidarDevice, err := helper.CreateRplidarComponent(name,
+	lidarDevice, err := helper.CreateRplidarComponent("new-rplidar",
 		rplidar.ModelName,
 		argsParsed.DevicePath,
 		argsParsed.DataFolder,
@@ -77,5 +78,16 @@ func runServer(ctx context.Context, port int, lidarDevice config.Component, logg
 		return err
 	}
 	options.Pprof = true
+
+	defer func() {
+		rpl, err := camera.FromRobot(myRobot, "new-rplidar")
+		if err != nil {
+			return err
+		}
+		if err = viamutils.TryClose(ctx, rpl); err != nil {
+			return err
+		}
+	}()
+
 	return web.RunWeb(ctx, myRobot, options, logger)
 }
