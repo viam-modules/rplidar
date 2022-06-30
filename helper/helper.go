@@ -88,6 +88,7 @@ func CreateRplidarComponent(name, model, devicePath, dataFolder, defaultDataFold
 	}
 
 	lidarDevice := config.Component{
+		Namespace: "rdk",
 		Name:  name,
 		Type:  cameraType,
 		Model: model,

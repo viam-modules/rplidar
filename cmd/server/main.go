@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 
 	"go.viam.com/rplidar"
 	"go.viam.com/rplidar/helper"
@@ -62,7 +63,14 @@ func runServer(ctx context.Context, port int, lidarDevice config.Component, logg
 		return err
 	}
 
-	cfg := &config.Config{Components: []config.Component{lidarDevice}}
+	cfg := &config.Config{
+		Components: []config.Component{lidarDevice},
+		Network: config.NetworkConfig{
+			NetworkConfigData: config.NetworkConfigData{
+				BindAddress:           fmt.Sprintf("localhost:%v", port),
+			},
+		},
+	}
 	//myRobot, err := robotimpl.New(ctx, cfg, logger, client.WithDialOptions(rpc.WithInsecure()))
 	myRobot, err := robotimpl.RobotFromConfig(ctx, cfg, logger)
 	if err != nil {
