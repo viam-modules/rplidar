@@ -312,9 +312,6 @@ func (d *Device) Start() {
 	d.nodes = gen.New_measurementNodeHqArray(d.nodeSize)
 }
 
-// func (d *Device) Do(){
-// }
-
 // Stop request that the device stops spinning.
 func (d *Device) Stop() {
 	d.mu.Lock()
