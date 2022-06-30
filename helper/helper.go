@@ -98,11 +98,3 @@ func CreateRplidarComponent(name, model, devicePath, dataFolder, defaultDataFold
 	}
 	return lidarDevice, nil
 }
-
-// func GetServiceContext(ctx context.Context) (context.Context, error) {
-// 	metadataSvc, err := service.New()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return service.ContextWithService(ctx, metadataSvc), nil
-// }
