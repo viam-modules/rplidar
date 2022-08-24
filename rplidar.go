@@ -19,19 +19,21 @@ import (
 	"github.com/edaniels/golog"
 	"github.com/golang/geo/r3"
 	"go.viam.com/rdk/component/camera"
+	"go.viam.com/rdk/component/generic"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
-	"go.viam.com/rdk/robot"
+	"go.viam.com/rdk/rimage"
 	"go.viam.com/rdk/spatialmath"
-	"go.viam.com/rdk/usb"
 	rdkUtils "go.viam.com/rdk/utils"
+	"go.viam.com/utils/usb"
 )
 
 const (
 	// ModelName is how the lidar will be registered into rdk.
 	ModelName      = "rplidar"
 	defaultTimeout = uint(1000)
+	DefaultPort    = 4444
 )
 
 var USBInfo = &usb.Identifier{
@@ -40,16 +42,9 @@ var USBInfo = &usb.Identifier{
 }
 
 func init() {
-	registry.RegisterComponent(
-		camera.Subtype,
-		ModelName,
-		registry.Component{Constructor: func(
-			ctx context.Context,
-			r robot.Robot,
-			config config.Component,
-			logger golog.Logger,
-		) (interface{}, error) {
-			port := config.Attributes.Int("port", 8081)
+	registry.RegisterComponent(camera.Subtype, ModelName, registry.Component{
+		Constructor: func(ctx context.Context, _ registry.Dependencies, config config.Component, logger golog.Logger) (interface{}, error) {
+			port := config.Attributes.Int("port", DefaultPort)
 			devicePath := config.Attributes.String("device_path")
 			if devicePath == "" {
 				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0)")
@@ -204,6 +199,7 @@ func NewRPLidar(logger golog.Logger, port int, devicePath string, dataFolder str
 
 // Device controls an RPLidar device.
 type Device struct {
+	generic.Unimplemented
 	mu                      sync.Mutex
 	driver                  gen.RPlidarDriver
 	nodes                   gen.Rplidar_response_measurement_node_hq_t
@@ -391,7 +387,7 @@ func (d *Device) savePCDFile(timeStamp time.Time, pc pointcloud.PointCloud) erro
 	}
 
 	w := bufio.NewWriter(f)
-	if err = pc.ToPCD(w); err != nil {
+	if err = pointcloud.ToPCD(pc, w, pointcloud.PCDBinary); err != nil {
 		return err
 	}
 	if err = w.Flush(); err != nil {
@@ -421,7 +417,7 @@ func (d *Device) getPointCloud(ctx context.Context) (pointcloud.PointCloud, time
 	return pc, time.Now(), nil
 }
 
-func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Point {
+func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, pointcloud.Data) {
 	ea := spatialmath.NewEulerAngles()
 	ea.Yaw = yaw
 	ea.Pitch = pitch
@@ -430,10 +426,11 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) pointcloud.Poin
 	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{distance, 0, 0})
 	p := spatialmath.Compose(pose1, pose2).Point()
 
-	pc := pointcloud.NewBasicPoint(p.X*1000, p.Y*1000, p.Z*1000).SetIntensity(uint16(reflectivity) * 255)
-	pc = pc.SetColor(color.NRGBA{255, 0, 0, 255})
+	pos := pointcloud.NewVector(p.X*1000, p.Y*1000, p.Z*1000)
+	d := pointcloud.NewBasicData()
+	d.SetIntensity(uint16(reflectivity) * 255)
 
-	return pc
+	return pos, d
 }
 
 // AngularResolution returns the highest angular resolution the device offers.
@@ -461,12 +458,11 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 	maxX := 0.0
 	maxY := 0.0
 
-	pc.Iterate(func(p pointcloud.Point) bool {
-		pos := p.Position()
-		minX = math.Min(minX, pos.X)
-		maxX = math.Max(maxX, pos.X)
-		minY = math.Min(minY, pos.Y)
-		maxY = math.Max(maxY, pos.Y)
+	pc.Iterate(0, 0, func(p r3.Vector, d pointcloud.Data) bool {
+		minX = math.Min(minX, p.X)
+		maxX = math.Max(maxX, p.X)
+		minY = math.Min(minY, p.Y)
+		maxY = math.Max(maxY, p.Y)
 		return true
 	})
 
@@ -485,8 +481,8 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 		img.SetNRGBA(x, y, clr)
 	}
 
-	pc.Iterate(func(p pointcloud.Point) bool {
-		set(p.Position().X, p.Position().Y, color.NRGBA{255, 0, 0, 255})
+	pc.Iterate(0, 0, func(p r3.Vector, d pointcloud.Data) bool {
+		set(p.X, p.Y, color.NRGBA{255, 0, 0, 255})
 		return true
 	})
 
@@ -498,6 +494,14 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 	}
 
 	return img, nil, nil
+}
+
+func (d *Device) GetProperties(ctx context.Context) (rimage.Projector, error) {
+	var proj rimage.Projector
+	return proj, rdkUtils.NewUnimplementedInterfaceError("Properties", nil)
+}
+func (d *Device) GetFrame(ctx context.Context, mimeType string) ([]byte, string, int64, int64, error) {
+	return nil, "", -1, -1, rdkUtils.NewUnimplementedInterfaceError("GetFrame", nil)
 }
 
 // Close stops the device and disposes of the driver.

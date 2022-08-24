@@ -1,17 +1,16 @@
 package helper
 
 import (
-	"context"
 	"errors"
 	"os"
 	"path/filepath"
 
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/config"
-	"go.viam.com/rdk/metadata/service"
-	"go.viam.com/rdk/usb"
+	"go.viam.com/rdk/resource"
 	"go.viam.com/rplidar"
 	"go.viam.com/utils"
+	"go.viam.com/utils/usb"
 )
 
 func GetPort(port utils.NetPortFlag, defaultPort utils.NetPortFlag, logger golog.Logger) utils.NetPortFlag {
@@ -77,7 +76,7 @@ func getDataFolder(dataFolder string, defaultDataFolder string, logger golog.Log
 	return dataFolder, nil
 }
 
-func CreateRplidarComponent(name, model, devicePath, dataFolder, defaultDataFolder string, cameraType config.ComponentType, logger golog.Logger) (config.Component, error) {
+func CreateRplidarComponent(name, model, devicePath, dataFolder, defaultDataFolder string, cameraType resource.SubtypeName, logger golog.Logger) (config.Component, error) {
 	devicePath, err := getDevicePath(devicePath, logger)
 	if err != nil {
 		return config.Component{}, err
@@ -88,21 +87,14 @@ func CreateRplidarComponent(name, model, devicePath, dataFolder, defaultDataFold
 	}
 
 	lidarDevice := config.Component{
-		Name:  name,
-		Type:  cameraType,
-		Model: model,
+		Namespace: "rdk",
+		Name:      name,
+		Type:      cameraType,
+		Model:     model,
 		Attributes: config.AttributeMap{
 			"device_path": devicePath,
 			"data_folder": dataFolder,
 		},
 	}
 	return lidarDevice, nil
-}
-
-func GetServiceContext(ctx context.Context) (context.Context, error) {
-	metadataSvc, err := service.New()
-	if err != nil {
-		return nil, err
-	}
-	return service.ContextWithService(ctx, metadataSvc), nil
 }
