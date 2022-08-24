@@ -25,6 +25,7 @@ var (
 	defaultTimeDeltaMilliseconds = 100
 	defaultDataFolder            = "data"
 	logger                       = rlog.Logger.Named("save_pcd_files")
+	name                         = "rplidar"
 )
 
 func main() {

@@ -22,6 +22,7 @@ import (
 var (
 	defaultDataFolder = "data"
 	logger            = rlog.Logger.Named("server")
+	name              = "rplidar"
 )
 
 func main() {
@@ -43,7 +44,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 	argsParsed.Port = helper.GetPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
 
-	lidarDevice, err := helper.CreateRplidarComponent("rplidar",
+	lidarDevice, err := helper.CreateRplidarComponent(name,
 		rplidar.ModelName,
 		argsParsed.DevicePath,
 		argsParsed.DataFolder,
@@ -80,7 +81,7 @@ func runServer(ctx context.Context, port int, lidarDevice config.Component, logg
 	options.Pprof = true
 
 	defer func() {
-		rpl, err := camera.FromRobot(myRobot, lidarDevice.Name)
+		rpl, err := camera.FromRobot(myRobot, name)
 		if err != nil {
 			logger.Errorf("failed to get rplidar from robot: %s", err)
 		}
