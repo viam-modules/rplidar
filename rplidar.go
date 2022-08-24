@@ -333,7 +333,6 @@ func (d *Device) Stop() {
 // NextPointCloud performs a scan on the device and performs some filtering to clean up the data.
 // It also saves the pointcloud in form of a pcd file.
 func (d *Device) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
-	fmt.Println("hi")
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	pc, timeStamp, err := d.getPointCloud(ctx)

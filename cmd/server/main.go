@@ -80,7 +80,7 @@ func runServer(ctx context.Context, port int, lidarDevice config.Component, logg
 	options.Pprof = true
 
 	defer func() {
-		rpl, err := camera.FromRobot(myRobot, "new-rplidar")
+		rpl, err := camera.FromRobot(myRobot, lidarDevice.Name)
 		if err != nil {
 			logger.Errorf("failed to get rplidar from robot: %s", err)
 		}
