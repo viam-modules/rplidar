@@ -43,7 +43,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 	argsParsed.Port = helper.GetPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
 
-	lidarDevice, err := helper.CreateRplidarComponent("new-rplidar",
+	lidarDevice, err := helper.CreateRplidarComponent(rplidar.ModelName,
 		rplidar.ModelName,
 		argsParsed.DevicePath,
 		argsParsed.DataFolder,
