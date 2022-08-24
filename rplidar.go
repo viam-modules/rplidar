@@ -23,6 +23,7 @@ import (
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
+	"go.viam.com/rdk/rimage"
 	"go.viam.com/rdk/spatialmath"
 	rdkUtils "go.viam.com/rdk/utils"
 	"go.viam.com/utils/usb"
@@ -332,6 +333,7 @@ func (d *Device) Stop() {
 // NextPointCloud performs a scan on the device and performs some filtering to clean up the data.
 // It also saves the pointcloud in form of a pcd file.
 func (d *Device) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
+	fmt.Println("hi")
 	d.mu.Lock()
 	defer d.mu.Unlock()
 	pc, timeStamp, err := d.getPointCloud(ctx)
@@ -493,6 +495,14 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 	}
 
 	return img, nil, nil
+}
+
+func (d *Device) GetProperties(ctx context.Context) (rimage.Projector, error) {
+	var proj rimage.Projector
+	return proj, rdkUtils.NewUnimplementedInterfaceError("Properties", nil)
+}
+func (d *Device) GetFrame(ctx context.Context, mimeType string) ([]byte, string, int64, int64, error) {
+	return nil, "", -1, -1, rdkUtils.NewUnimplementedInterfaceError("GetFrame", nil)
 }
 
 // Close stops the device and disposes of the driver.

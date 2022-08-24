@@ -4,12 +4,13 @@ The below will only work for Viam, Inc. employees right now. The C++ code is ind
 
 ## Getting started
 
-1. `make`
-2. Dependencies for golang
+1. Install swig (https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/)
+2. `make`
+3. Dependencies for golang
     * Make sure the following is in your shell configuration:
         * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
     * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
-3. There are two options: Run a server/client, or a script that saves PCD files into a directory. See instructions for RPI/Debian and OSX below:
+4. There are two options: Run a server/client, or a script that saves PCD files into a directory. See instructions for RPI/Debian and OSX below:
 
 **RPI (Debian)**
 * Server/Client: `go run cmd/server/main.go`
