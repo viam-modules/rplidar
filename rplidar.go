@@ -17,13 +17,14 @@ import (
 	"go.viam.com/utils"
 
 	"github.com/edaniels/golog"
+	"github.com/edaniels/gostream"
 	"github.com/golang/geo/r3"
-	"go.viam.com/rdk/component/camera"
-	"go.viam.com/rdk/component/generic"
+	"go.viam.com/rdk/components/camera"
+	"go.viam.com/rdk/components/generic"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
-	"go.viam.com/rdk/rimage"
+	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	rdkUtils "go.viam.com/rdk/utils"
 	"go.viam.com/utils/usb"
@@ -496,10 +497,21 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 	return img, nil, nil
 }
 
-func (d *Device) GetProperties(ctx context.Context) (rimage.Projector, error) {
-	var proj rimage.Projector
-	return proj, rdkUtils.NewUnimplementedInterfaceError("Properties", nil)
+func (d *Device) Properties(ctx context.Context) (camera.Properties, error) {
+	var props camera.Properties
+	return props, rdkUtils.NewUnimplementedInterfaceError("Properties", nil)
 }
+
+func (d *Device) Projector(ctx context.Context) (transform.Projector, error) {
+	var proj transform.Projector
+	return proj, rdkUtils.NewUnimplementedInterfaceError("Projector", nil)
+}
+
+func (d *Device) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
+	var stream gostream.VideoStream
+	return stream, rdkUtils.NewUnimplementedInterfaceError("Stream", nil)
+}
+
 func (d *Device) GetFrame(ctx context.Context, mimeType string) ([]byte, string, int64, int64, error) {
 	return nil, "", -1, -1, rdkUtils.NewUnimplementedInterfaceError("GetFrame", nil)
 }

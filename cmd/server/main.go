@@ -8,7 +8,7 @@ import (
 	"go.viam.com/rplidar/helper"
 
 	"github.com/edaniels/golog"
-	"go.viam.com/rdk/component/camera"
+	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/rlog"
 	"go.viam.com/utils"

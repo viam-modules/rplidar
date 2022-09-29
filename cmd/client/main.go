@@ -10,10 +10,10 @@ import (
 	"go.uber.org/multierr"
 
 	"github.com/edaniels/golog"
-	"go.viam.com/rdk/component/camera"
-	_ "go.viam.com/rdk/component/camera/register"
-	"go.viam.com/rdk/grpc/client"
+	"go.viam.com/rdk/components/camera"
+	_ "go.viam.com/rdk/components/camera/register"
 	"go.viam.com/rdk/rlog"
+	"go.viam.com/rdk/robot/client"
 	"go.viam.com/utils"
 	"go.viam.com/utils/rpc"
 )
