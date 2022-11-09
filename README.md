@@ -13,10 +13,14 @@ The below will only work for Viam, Inc. employees right now. The C++ code is ind
 4. There are two options: Run a server/client, or a script that saves PCD files into a directory. See instructions for RPI/Debian and OSX below:
 
 **RPI (Debian)**
+Running directly:
 * Server/Client: `go run cmd/server/main.go`
     * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
     * Run the client in a separate terminal: `go run cmd/client/main.go`
 * Script that saves PCD files: `go run cmd/savepcdfiles/main.go`
+
+Building server:
+* To build the server for later use run `make build-server`
 
 **OSX**
 

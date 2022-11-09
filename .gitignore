@@ -17,7 +17,7 @@
 # Perf output
 *.pprog
 
-# output for pprof
+# Output for pprof
 *.prof
 *.pprof
 
@@ -44,13 +44,13 @@ coverage.txt
 /data*
 out/
 .idea/*
-bin/
 
-# artifact
+# Artifacts
 .artifact/cache
 .artifact/data
 
 librplidar_sdk.a
 **/sdk/output
 
-main
+# Previous build 
+bin/
