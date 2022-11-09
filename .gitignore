@@ -44,7 +44,6 @@ coverage.txt
 /data*
 out/
 .idea/*
-bin/
 
 # Artifacts
 .artifact/cache
@@ -54,4 +53,4 @@ librplidar_sdk.a
 **/sdk/output
 
 # Previous build 
-build/*
+bin/
