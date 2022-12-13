@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"go.viam.com/rplidar/gen"
+
 	"go.viam.com/utils"
 
 	"github.com/edaniels/golog"
@@ -27,6 +28,7 @@ import (
 	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	rdkUtils "go.viam.com/rdk/utils"
+
 	"go.viam.com/utils/usb"
 )
 

@@ -14,8 +14,8 @@ import (
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
-	"go.viam.com/rdk/rlog"
 	"go.viam.com/rdk/robot"
+
 	"go.viam.com/utils"
 
 	robotimpl "go.viam.com/rdk/robot/impl"
@@ -24,7 +24,7 @@ import (
 var (
 	defaultTimeDeltaMilliseconds = 100
 	defaultDataFolder            = "data"
-	logger                       = rlog.Logger.Named("save_pcd_files")
+	logger                       = golog.NewLogger("save_pcd_files")
 	name                         = "rplidar"
 )
 
