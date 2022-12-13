@@ -54,3 +54,7 @@ librplidar_sdk.a
 
 # Previous build 
 bin/
+
+# Swig generated code
+gen/gen_wrap.cxx
+gen/gen.go
