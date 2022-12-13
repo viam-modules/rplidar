@@ -32,4 +32,4 @@ clean:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
 
 build-server:
-	mkdir bin && go build -o bin/rplidar_server cmd/server/main.go
+	mkdir -p bin && go build -o bin/rplidar_server cmd/server/main.go
