@@ -12,8 +12,8 @@ import (
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
 	_ "go.viam.com/rdk/components/camera/register"
-	"go.viam.com/rdk/rlog"
 	"go.viam.com/rdk/robot/client"
+
 	"go.viam.com/utils"
 	"go.viam.com/utils/rpc"
 )
@@ -22,7 +22,7 @@ func main() {
 	utils.ContextualMain(mainWithArgs, logger)
 }
 
-var logger = rlog.Logger.Named("client")
+var logger = golog.NewLogger("client")
 
 // Arguments for the command.
 type Arguments struct {

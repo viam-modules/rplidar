@@ -10,18 +10,19 @@ import (
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
-	"go.viam.com/rdk/rlog"
+
 	"go.viam.com/utils"
 
 	robotimpl "go.viam.com/rdk/robot/impl"
 	"go.viam.com/rdk/robot/web"
 	weboptions "go.viam.com/rdk/robot/web/options"
+
 	viamutils "go.viam.com/utils"
 )
 
 var (
 	defaultDataFolder = "data"
-	logger            = rlog.Logger.Named("server")
+	logger            = golog.NewLogger("server")
 	name              = "rplidar"
 )
 
