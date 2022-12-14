@@ -13,6 +13,11 @@ import (
 	"go.viam.com/utils/usb"
 )
 
+var USBInfo = &usb.Identifier{
+	Vendor:  0x10c4,
+	Product: 0xea60,
+}
+
 func GetPort(port utils.NetPortFlag, defaultPort utils.NetPortFlag, logger golog.Logger) utils.NetPortFlag {
 	if port == 0 {
 		logger.Debugf("using default port %d ", defaultPort)
