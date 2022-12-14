@@ -9,7 +9,6 @@ import (
 
 	"go.uber.org/multierr"
 	"go.viam.com/rplidar"
-	"go.viam.com/rplidar/helper"
 
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
@@ -46,9 +45,9 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return err
 	}
 
-	scanTimeDelta := helper.GetTimeDeltaMilliseconds(argsParsed.TimeDeltaMilliseconds, defaultTimeDeltaMilliseconds, logger)
+	scanTimeDelta := rplidar.GetTimeDeltaMilliseconds(argsParsed.TimeDeltaMilliseconds, defaultTimeDeltaMilliseconds, logger)
 
-	lidarDevice, err := helper.CreateRplidarComponent(name,
+	lidarDevice, err := rplidar.CreateRplidarComponent(name,
 		rplidar.ModelName,
 		argsParsed.DevicePath,
 		argsParsed.DataFolder,

@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"go.viam.com/rplidar"
-	"go.viam.com/rplidar/helper"
 
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
@@ -43,9 +42,9 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	if err := utils.ParseFlags(args, &argsParsed); err != nil {
 		return err
 	}
-	argsParsed.Port = helper.GetPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
+	argsParsed.Port = rplidar.GetPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
 
-	lidarDevice, err := helper.CreateRplidarComponent(name,
+	lidarDevice, err := rplidar.CreateRplidarComponent(name,
 		rplidar.ModelName,
 		argsParsed.DevicePath,
 		argsParsed.DataFolder,

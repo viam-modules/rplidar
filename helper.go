@@ -1,4 +1,4 @@
-package helper
+package rplidar
 
 import (
 	"errors"
@@ -8,7 +8,6 @@ import (
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rplidar"
 
 	"go.viam.com/utils"
 	"go.viam.com/utils/usb"

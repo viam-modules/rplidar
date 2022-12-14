@@ -15,7 +15,7 @@ import (
 
 	"go.viam.com/rplidar/gen"
 
-	"go.viam.com/utils"
+	goutils "go.viam.com/utils"
 
 	"github.com/edaniels/golog"
 	"github.com/edaniels/gostream"
@@ -27,7 +27,7 @@ import (
 	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
-	rdkUtils "go.viam.com/rdk/utils"
+	"go.viam.com/rdk/utils"
 
 	"go.viam.com/utils/usb"
 )
@@ -58,68 +58,6 @@ func init() {
 			}
 			return NewRPLidar(logger, port, devicePath, dataFolder)
 		}})
-}
-
-type (
-	// Result describes the status of an RPLidar operation.
-	Result uint32
-
-	// ResultError is a result that encodes an error.
-	ResultError struct {
-		Result
-	}
-)
-
-// The set of possible results.
-var (
-	ResultOk                 = Result(gen.RESULT_OK)
-	ResultAlreadyDone        = Result(gen.RESULT_ALREADY_DONE)
-	ResultInvalidData        = Result(gen.RESULT_INVALID_DATA)
-	ResultOpFail             = Result(gen.RESULT_OPERATION_FAIL)
-	ResultOpTimeout          = Result(gen.RESULT_OPERATION_TIMEOUT)
-	ResultOpStop             = Result(gen.RESULT_OPERATION_STOP)
-	ResultOpNotSupported     = Result(gen.RESULT_OPERATION_NOT_SUPPORT)
-	ResultFormatNotSupported = Result(gen.RESULT_FORMAT_NOT_SUPPORT)
-	ResultInsufficientMemory = Result(gen.RESULT_INSUFFICIENT_MEMORY)
-)
-
-// Failed returns an error if the result is that of a failure.
-func (r Result) Failed() error {
-	if uint64(r)&gen.RESULT_FAIL_BIT == 0 {
-		return nil
-	}
-	return ResultError{r}
-}
-
-// String returns a human readable version of a result.
-func (r Result) String() string {
-	switch r {
-	case ResultOk:
-		return "Ok"
-	case ResultAlreadyDone:
-		return "AlreadyDone"
-	case ResultInvalidData:
-		return "InvalidData"
-	case ResultOpFail:
-		return "OpFail"
-	case ResultOpTimeout:
-		return "OpTimeout"
-	case ResultOpStop:
-		return "OpStop"
-	case ResultOpNotSupported:
-		return "OpNotSupported"
-	case ResultFormatNotSupported:
-		return "FormatNotSupported"
-	case ResultInsufficientMemory:
-		return "InsufficientMemory"
-	default:
-		return "Unknown"
-	}
-}
-
-// Error returns the error as a human readable string.
-func (r ResultError) Error() string {
-	return r.String()
 }
 
 // NewRPLidar returns a new RPLidar device at the given path.
@@ -371,7 +309,7 @@ func (d *Device) scan(ctx context.Context, numScans int) (pointcloud.PointCloud,
 			nodeAngle := (float64(node.GetAngle_z_q14()) * 90 / (1 << 14))
 			nodeDistance := float64(node.GetDist_mm_q2()) / 4
 
-			err := pc.Set(pointFrom(rdkUtils.DegToRad(nodeAngle), rdkUtils.DegToRad(0), float64(nodeDistance)/1000, 255))
+			err := pc.Set(pointFrom(utils.DegToRad(nodeAngle), utils.DegToRad(0), float64(nodeDistance)/1000, 255))
 			if err != nil {
 				return nil, err
 			}
@@ -407,7 +345,7 @@ func (d *Device) getPointCloud(ctx context.Context) (pointcloud.PointCloud, time
 	// wait and then discard scans for warmup
 	if !d.scannedOnce {
 		d.scannedOnce = true
-		utils.SelectContextOrWait(ctx, time.Duration(d.warmupNumDiscardedScans)*time.Second)
+		goutils.SelectContextOrWait(ctx, time.Duration(d.warmupNumDiscardedScans)*time.Second)
 		if _, err := d.scan(ctx, d.warmupNumDiscardedScans); err != nil {
 			return nil, time.Now(), err
 		}
@@ -501,21 +439,21 @@ func (d *Device) Next(ctx context.Context) (image.Image, func(), error) {
 
 func (d *Device) Properties(ctx context.Context) (camera.Properties, error) {
 	var props camera.Properties
-	return props, rdkUtils.NewUnimplementedInterfaceError("Properties", nil)
+	return props, utils.NewUnimplementedInterfaceError("Properties", nil)
 }
 
 func (d *Device) Projector(ctx context.Context) (transform.Projector, error) {
 	var proj transform.Projector
-	return proj, rdkUtils.NewUnimplementedInterfaceError("Projector", nil)
+	return proj, utils.NewUnimplementedInterfaceError("Projector", nil)
 }
 
 func (d *Device) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
 	var stream gostream.VideoStream
-	return stream, rdkUtils.NewUnimplementedInterfaceError("Stream", nil)
+	return stream, utils.NewUnimplementedInterfaceError("Stream", nil)
 }
 
 func (d *Device) GetFrame(ctx context.Context, mimeType string) ([]byte, string, int64, int64, error) {
-	return nil, "", -1, -1, rdkUtils.NewUnimplementedInterfaceError("GetFrame", nil)
+	return nil, "", -1, -1, utils.NewUnimplementedInterfaceError("GetFrame", nil)
 }
 
 // Close stops the device and disposes of the driver.
