@@ -46,7 +46,7 @@ func getDevicePath(devicePath string, logger golog.Logger) (string, error) {
 		usbDevices := usb.Search(
 			usb.SearchFilter{},
 			func(vendorID, productID int) bool {
-				return vendorID == rplidar.USBInfo.Vendor && productID == rplidar.USBInfo.Product
+				return vendorID == USBInfo.Vendor && productID == USBInfo.Product
 			})
 
 		if len(usbDevices) != 0 {
