@@ -4,15 +4,19 @@ The below will only work for Viam, Inc. employees right now. The C++ code is ind
 
 ## Getting started
 
+### Installation
 1. Install swig (https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/)
 2. `make`
 3. Dependencies for golang
     * Make sure the following is in your shell configuration:
         * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
     * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
-4. There are two options: Run a server/client, or a script that saves PCD files into a directory. See instructions for RPI/Debian and OSX below:
+
+### Running the rplidar
+There are two options: Run a server/client, or a script that saves PCD files into a directory.
 
 **RPI (Debian)**
+
 Running directly:
 * Server/Client: `go run cmd/server/main.go`
     * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
@@ -33,3 +37,10 @@ Building server:
     * Script that saves PCD files: `go run cmd/savepcdfiles/main.go -device YOUR_RPLIDAR_PATH`
 
 An example of how to run the rplidar on osx can be found in [collect_data_osx.sh](./collect_data_osx.sh).
+
+## Development
+### Linting
+
+```bash
+make lint
+```
