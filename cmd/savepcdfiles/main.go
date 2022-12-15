@@ -1,8 +1,11 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 
 	"math"
 	"time"
@@ -13,6 +16,7 @@ import (
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
+	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/robot"
 
 	"go.viam.com/utils"
@@ -50,8 +54,6 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	lidarDevice, err := rplidar.CreateRplidarComponent(name,
 		rplidar.ModelName,
 		argsParsed.DevicePath,
-		argsParsed.DataFolder,
-		defaultDataFolder,
 		camera.SubtypeName,
 		logger)
 	if err != nil {
@@ -71,10 +73,15 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 
 	rplidar := res.(camera.Camera)
 
-	return savePCDFiles(ctx, myRobot, rplidar, scanTimeDelta, logger)
+	dataFolder, err := getDataFolder(argsParsed.DataFolder, logger)
+	if err != nil {
+		return err
+	}
+
+	return savePCDFiles(ctx, myRobot, rplidar, dataFolder, scanTimeDelta, logger)
 }
 
-func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.Camera, timeDeltaMilliseconds int, logger golog.Logger) (err error) {
+func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.Camera, dataFolder string, timeDeltaMilliseconds int, logger golog.Logger) (err error) {
 	for {
 		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(timeDeltaMilliseconds)))*time.Millisecond) {
 
@@ -90,9 +97,26 @@ func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.
 				return multierr.Combine(err, myRobot.Close(ctx))
 			}
 		}
+		savePCDFile(dataFolder, time.Now(), pc)
 
 		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
+}
+
+func savePCDFile(dataFolder string, timeStamp time.Time, pc pointcloud.PointCloud) error {
+	f, err := os.Create(dataFolder + "/rplidar_data_" + timeStamp.UTC().Format(time.RFC3339Nano) + ".pcd")
+	if err != nil {
+		return err
+	}
+
+	w := bufio.NewWriter(f)
+	if err = pointcloud.ToPCD(pc, w, pointcloud.PCDBinary); err != nil {
+		return err
+	}
+	if err = w.Flush(); err != nil {
+		return err
+	}
+	return f.Close()
 }
 
 func getTimeDeltaMilliseconds(scanTimeDelta, defaultTimeDeltaMilliseconds int, logger golog.Logger) int {
@@ -111,4 +135,18 @@ func getTimeDeltaMilliseconds(scanTimeDelta, defaultTimeDeltaMilliseconds int, l
 		logger.Warnf("the expected scan rate of deltaT=%v is too small, has to be at least %v", scanTimeDelta, estimatedTimePerScan)
 	}
 	return scanTimeDelta
+}
+
+func getDataFolder(dataFolder string, logger golog.Logger) (string, error) {
+	if dataFolder == "" {
+		logger.Debugf("using default data folder '%s' ", defaultDataFolder)
+		dataFolder = defaultDataFolder
+	} else {
+		logger.Debugf("using user defined data folder %s", dataFolder)
+	}
+
+	if err := os.MkdirAll(filepath.Join(".", dataFolder), os.ModePerm); err != nil {
+		return "", errors.New("can not create a new directory named: " + dataFolder)
+	}
+	return dataFolder, nil
 }

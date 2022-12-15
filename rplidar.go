@@ -29,7 +29,7 @@ const (
 	// ModelName is how the lidar will be registered into rdk.
 	ModelName      = "rplidar"
 	defaultTimeout = uint(1000)
-	DefaultPort    = 4444
+	DefaultPort    = 4445
 )
 
 func init() {

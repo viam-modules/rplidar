@@ -20,9 +20,8 @@ import (
 )
 
 var (
-	defaultDataFolder = "data"
-	logger            = golog.NewLogger("server")
-	name              = "rplidar"
+	logger = golog.NewLogger("server")
+	name   = "rplidar"
 )
 
 func main() {
@@ -33,7 +32,6 @@ func main() {
 type Arguments struct {
 	Port       utils.NetPortFlag `flag:"0"`
 	DevicePath string            `flag:"device,usage=device path"`
-	DataFolder string            `flag:"datafolder,usage=datafolder path"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -47,8 +45,6 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	lidarDevice, err := rplidar.CreateRplidarComponent(name,
 		rplidar.ModelName,
 		argsParsed.DevicePath,
-		argsParsed.DataFolder,
-		defaultDataFolder,
 		camera.SubtypeName,
 		logger)
 	if err != nil {
