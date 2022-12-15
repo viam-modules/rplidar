@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"io"
 	"time"
 
+	"github.com/pkg/errors"
 	"go.uber.org/multierr"
 
 	"github.com/edaniels/golog"
@@ -51,11 +50,10 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) e
 
 	res, err := robotClient.ResourceByName(camera.Named("rplidar"))
 	if err != nil {
-		return fmt.Errorf("failed to find component")
+		return errors.Wrap(err, "failed to find component")
 	}
 
 	cameraDevice := res.(camera.Camera)
-
 	// Run loop
 	for {
 		if !utils.SelectContextOrWait(ctx, 5*time.Second) {

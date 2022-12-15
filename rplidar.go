@@ -29,7 +29,8 @@ const (
 	// ModelName is how the lidar will be registered into rdk.
 	ModelName      = "rplidar"
 	defaultTimeout = uint(1000)
-	DefaultPort    = 4445
+	// DefaultPort is the default port for the rplidar.
+	DefaultPort = 4444
 )
 
 func init() {
@@ -83,7 +84,7 @@ func (rp *RPLidar) Start() {
 	defer rp.mu.Unlock()
 
 	rp.started = true
-	rp.logger.Debugf("starting motor")
+	rp.logger.Debug("starting motor")
 	rp.device.driver.StartMotor()
 	rp.device.driver.StartScan(false, true)
 	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
@@ -100,7 +101,7 @@ func (rp *RPLidar) Stop() {
 			rp.nodes = nil
 		}()
 	}
-	rp.logger.Debugf("stopping motor")
+	rp.logger.Debug("stopping motor")
 	rp.device.driver.Stop()
 	rp.device.driver.StopMotor()
 	rp.started = false
@@ -140,7 +141,7 @@ func (rp *RPLidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 			nodeAngle := (float64(node.GetAngle_z_q14()) * 90 / (1 << 14))
 			nodeDistance := float64(node.GetDist_mm_q2()) / 4
 
-			err := pc.Set(pointFrom(utils.DegToRad(nodeAngle), utils.DegToRad(0), float64(nodeDistance)/1000, 255))
+			err := pc.Set(pointFrom(utils.DegToRad(nodeAngle), utils.DegToRad(0), nodeDistance/1000, 255))
 			if err != nil {
 				return nil, err
 			}
@@ -173,23 +174,22 @@ func (rp *RPLidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, er
 	return pc, nil
 }
 
+// Properties is a part of the Camera interface but is not implemented for the rplidar.
 func (rp *RPLidar) Properties(ctx context.Context) (camera.Properties, error) {
 	var props camera.Properties
 	return props, utils.NewUnimplementedInterfaceError("Properties", nil)
 }
 
+// Projector is a part of the Camera interface but is not implemented for the rplidar.
 func (rp *RPLidar) Projector(ctx context.Context) (transform.Projector, error) {
 	var proj transform.Projector
 	return proj, utils.NewUnimplementedInterfaceError("Projector", nil)
 }
 
+// Stream is a part of the Camera interface but is not implemented for the rplidar.
 func (rp *RPLidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
 	var stream gostream.VideoStream
 	return stream, utils.NewUnimplementedInterfaceError("Stream", nil)
-}
-
-func (rp *RPLidar) GetFrame(ctx context.Context, mimeType string) ([]byte, string, int64, int64, error) {
-	return nil, "", -1, -1, utils.NewUnimplementedInterfaceError("GetFrame", nil)
 }
 
 // Close stops the rplidar and disposes of the driver.

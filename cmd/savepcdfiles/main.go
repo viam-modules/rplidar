@@ -17,7 +17,6 @@ import (
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
-	"go.viam.com/rdk/robot"
 
 	"go.viam.com/utils"
 
@@ -81,10 +80,9 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	return savePCDFiles(ctx, myRobot, rplidar, dataFolder, scanTimeDelta, logger)
 }
 
-func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.Camera, dataFolder string, timeDeltaMilliseconds int, logger golog.Logger) (err error) {
+func savePCDFiles(ctx context.Context, myRobot utils.ContextCloser, rplidar camera.PointCloudSource, dataFolder string, timeDeltaMilliseconds int, logger golog.Logger) error {
 	for {
 		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(timeDeltaMilliseconds)))*time.Millisecond) {
-
 			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
 		}
 
@@ -97,7 +95,9 @@ func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.
 				return multierr.Combine(err, myRobot.Close(ctx))
 			}
 		}
-		savePCDFile(dataFolder, time.Now(), pc)
+		if err = savePCDFile(dataFolder, time.Now(), pc); err != nil {
+			return err
+		}
 
 		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
@@ -126,9 +126,8 @@ func getTimeDeltaMilliseconds(scanTimeDelta, defaultTimeDeltaMilliseconds int, l
 	if scanTimeDelta == 0 {
 		logger.Debugf("using default time delta %d ", defaultTimeDeltaMilliseconds)
 		return defaultTimeDeltaMilliseconds
-	} else {
-		logger.Debugf("using user defined time delta %d ", scanTimeDelta)
 	}
+	logger.Debugf("using user defined time delta %d ", scanTimeDelta)
 
 	var estimatedTimePerScan int = 66
 	if scanTimeDelta < estimatedTimePerScan {

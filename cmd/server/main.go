@@ -54,7 +54,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)
 }
 
-func runServer(ctx context.Context, port int, lidarDevice config.Component, logger golog.Logger) (err error) {
+func runServer(ctx context.Context, port int, lidarDevice config.Component, logger golog.Logger) error {
 
 	cfg := &config.Config{
 		Components: []config.Component{lidarDevice},
@@ -93,8 +93,8 @@ func getPort(port utils.NetPortFlag, defaultPort utils.NetPortFlag, logger golog
 	if port == 0 {
 		logger.Debugf("using default port %d ", defaultPort)
 		return defaultPort
-	} else {
-		logger.Debugf("using user defined port %d ", port)
 	}
+
+	logger.Debugf("using user defined port %d ", port)
 	return port
 }
