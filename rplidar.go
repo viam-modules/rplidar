@@ -2,11 +2,9 @@
 package rplidar
 
 import (
-	"bufio"
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"sync"
 	"time"
 
@@ -42,16 +40,12 @@ func init() {
 			if devicePath == "" {
 				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0)")
 			}
-			dataFolder := config.Attributes.String("data_folder")
-			if dataFolder == "" {
-				return nil, errors.New("need to set 'data_folder' to a valid storage location")
-			}
-			return NewRPLidar(logger, port, devicePath, dataFolder)
+			return NewRPLidar(logger, port, devicePath)
 		}})
 }
 
 // NewRPLidar returns a new RPLidar device at the given path.
-func NewRPLidar(logger golog.Logger, port int, devicePath string, dataFolder string) (camera.Camera, error) {
+func NewRPLidar(logger golog.Logger, port int, devicePath string) (camera.Camera, error) {
 	rplidarDevice, err := getRplidarDevice(devicePath)
 	if err != nil {
 		return nil, err
@@ -63,7 +57,6 @@ func NewRPLidar(logger golog.Logger, port int, devicePath string, dataFolder str
 		logger:                  logger,
 		defaultNumScans:         1,
 		warmupNumDiscardedScans: 5,
-		dataFolder:              dataFolder,
 	}
 	rp.Start()
 	return rp, nil
@@ -80,7 +73,6 @@ type RPLidar struct {
 	scannedOnce             bool
 	defaultNumScans         int
 	warmupNumDiscardedScans int
-	dataFolder              string
 
 	logger golog.Logger
 }
@@ -115,15 +107,11 @@ func (rp *RPLidar) Stop() {
 }
 
 // NextPointCloud performs a scan on the rplidar and performs some filtering to clean up the data.
-// It also saves the pointcloud in form of a pcd file.
 func (rp *RPLidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
-	pc, timeStamp, err := rp.getPointCloud(ctx)
+	pc, err := rp.getPointCloud(ctx)
 	if err != nil {
-		return nil, err
-	}
-	if err = rp.savePCDFile(timeStamp, pc); err != nil {
 		return nil, err
 	}
 	return pc, nil
@@ -164,23 +152,7 @@ func (rp *RPLidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 	return pc, nil
 }
 
-func (rp *RPLidar) savePCDFile(timeStamp time.Time, pc pointcloud.PointCloud) error {
-	f, err := os.Create(rp.dataFolder + "/rplidar_data_" + timeStamp.UTC().Format(time.RFC3339Nano) + ".pcd")
-	if err != nil {
-		return err
-	}
-
-	w := bufio.NewWriter(f)
-	if err = pointcloud.ToPCD(pc, w, pointcloud.PCDBinary); err != nil {
-		return err
-	}
-	if err = w.Flush(); err != nil {
-		return err
-	}
-	return f.Close()
-}
-
-func (rp *RPLidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, time.Time, error) {
+func (rp *RPLidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
 	if !rp.started {
 		rp.Start()
 	}
@@ -190,15 +162,15 @@ func (rp *RPLidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, ti
 		rp.scannedOnce = true
 		goutils.SelectContextOrWait(ctx, time.Duration(rp.warmupNumDiscardedScans)*time.Second)
 		if _, err := rp.scan(ctx, rp.warmupNumDiscardedScans); err != nil {
-			return nil, time.Now(), err
+			return nil, err
 		}
 	}
 
 	pc, err := rp.scan(ctx, rp.defaultNumScans)
 	if err != nil {
-		return nil, time.Now(), err
+		return nil, err
 	}
-	return pc, time.Now(), nil
+	return pc, nil
 }
 
 func (rp *RPLidar) Properties(ctx context.Context) (camera.Properties, error) {

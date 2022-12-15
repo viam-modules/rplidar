@@ -9,41 +9,12 @@ import (
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/resource"
 
-	"go.viam.com/utils"
 	"go.viam.com/utils/usb"
 )
 
-var USBInfo = &usb.Identifier{
+var usbInfo = &usb.Identifier{
 	Vendor:  0x10c4,
 	Product: 0xea60,
-}
-
-func GetPort(port utils.NetPortFlag, defaultPort utils.NetPortFlag, logger golog.Logger) utils.NetPortFlag {
-	if port == 0 {
-		logger.Debugf("using default port %d ", defaultPort)
-		return defaultPort
-	} else {
-		logger.Debugf("using user defined port %d ", port)
-	}
-	return port
-}
-
-func GetTimeDeltaMilliseconds(scanTimeDelta, defaultTimeDeltaMilliseconds int, logger golog.Logger) int {
-	// Based on empirical data, we can see that the rplidar collects data at a rate of 15Hz,
-	// which is ~ 66ms per scan. This issues a warning to the user, in case they're expecting
-	// to receive data at a higher rate than what is technically possible.
-	if scanTimeDelta == 0 {
-		logger.Debugf("using default time delta %d ", defaultTimeDeltaMilliseconds)
-		return defaultTimeDeltaMilliseconds
-	} else {
-		logger.Debugf("using user defined time delta %d ", scanTimeDelta)
-	}
-
-	var estimatedTimePerScan int = 66
-	if scanTimeDelta < estimatedTimePerScan {
-		logger.Warnf("the expected scan rate of deltaT=%v is too small, has to be at least %v", scanTimeDelta, estimatedTimePerScan)
-	}
-	return scanTimeDelta
 }
 
 func getDevicePath(devicePath string, logger golog.Logger) (string, error) {
@@ -51,7 +22,7 @@ func getDevicePath(devicePath string, logger golog.Logger) (string, error) {
 		usbDevices := usb.Search(
 			usb.SearchFilter{},
 			func(vendorID, productID int) bool {
-				return vendorID == USBInfo.Vendor && productID == USBInfo.Product
+				return vendorID == usbInfo.Vendor && productID == usbInfo.Product
 			})
 
 		if len(usbDevices) != 0 {

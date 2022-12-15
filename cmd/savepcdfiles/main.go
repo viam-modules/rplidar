@@ -45,7 +45,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return err
 	}
 
-	scanTimeDelta := rplidar.GetTimeDeltaMilliseconds(argsParsed.TimeDeltaMilliseconds, defaultTimeDeltaMilliseconds, logger)
+	scanTimeDelta := getTimeDeltaMilliseconds(argsParsed.TimeDeltaMilliseconds, defaultTimeDeltaMilliseconds, logger)
 
 	lidarDevice, err := rplidar.CreateRplidarComponent(name,
 		rplidar.ModelName,
@@ -93,4 +93,22 @@ func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.
 
 		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
+}
+
+func getTimeDeltaMilliseconds(scanTimeDelta, defaultTimeDeltaMilliseconds int, logger golog.Logger) int {
+	// Based on empirical data, we can see that the rplidar collects data at a rate of 15Hz,
+	// which is ~ 66ms per scan. This issues a warning to the user, in case they're expecting
+	// to receive data at a higher rate than what is technically possible.
+	if scanTimeDelta == 0 {
+		logger.Debugf("using default time delta %d ", defaultTimeDeltaMilliseconds)
+		return defaultTimeDeltaMilliseconds
+	} else {
+		logger.Debugf("using user defined time delta %d ", scanTimeDelta)
+	}
+
+	var estimatedTimePerScan int = 66
+	if scanTimeDelta < estimatedTimePerScan {
+		logger.Warnf("the expected scan rate of deltaT=%v is too small, has to be at least %v", scanTimeDelta, estimatedTimePerScan)
+	}
+	return scanTimeDelta
 }

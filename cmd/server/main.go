@@ -42,7 +42,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	if err := utils.ParseFlags(args, &argsParsed); err != nil {
 		return err
 	}
-	argsParsed.Port = rplidar.GetPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
+	argsParsed.Port = getPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
 
 	lidarDevice, err := rplidar.CreateRplidarComponent(name,
 		rplidar.ModelName,
@@ -91,4 +91,14 @@ func runServer(ctx context.Context, port int, lidarDevice config.Component, logg
 	}()
 
 	return web.RunWeb(ctx, myRobot, options, logger)
+}
+
+func getPort(port utils.NetPortFlag, defaultPort utils.NetPortFlag, logger golog.Logger) utils.NetPortFlag {
+	if port == 0 {
+		logger.Debugf("using default port %d ", defaultPort)
+		return defaultPort
+	} else {
+		logger.Debugf("using user defined port %d ", port)
+	}
+	return port
 }
