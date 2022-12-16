@@ -35,17 +35,16 @@ const (
 func init() {
 	registry.RegisterComponent(camera.Subtype, model, registry.Component{
 		Constructor: func(ctx context.Context, _ registry.Dependencies, config config.Component, logger golog.Logger) (interface{}, error) {
-			port := config.Attributes.Int("port", DefaultPort)
 			devicePath := config.Attributes.String("device_path")
 			if devicePath == "" {
 				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0)")
 			}
-			return NewRPLidar(logger, port, devicePath)
+			return NewRPLidar(logger, devicePath)
 		}})
 }
 
 // NewRPLidar returns a new RPLidar device at the given path.
-func NewRPLidar(logger golog.Logger, port int, devicePath string) (camera.Camera, error) {
+func NewRPLidar(logger golog.Logger, devicePath string) (camera.Camera, error) {
 	rplidarDevice, err := getRplidarDevice(devicePath)
 	if err != nil {
 		return nil, err
