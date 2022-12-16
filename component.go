@@ -37,15 +37,15 @@ func getDevicePath(devicePath string, logger golog.Logger) (string, error) {
 }
 
 // CreateRplidarComponent creates and returns an rplidar config component.
-func CreateRplidarComponent(name, model, devicePath string, cameraType resource.SubtypeName, logger golog.Logger) (config.Component, error) {
+func CreateRplidarComponent(name, devicePath string, cameraType resource.SubtypeName, logger golog.Logger) (config.Component, error) {
 	devicePath, err := getDevicePath(devicePath, logger)
 	if err != nil {
 		return config.Component{}, err
 	}
 
 	rplidarComponent := config.Component{
-		Namespace: resource.ResourceNamespaceRDK,
 		Name:      name,
+		Namespace: resource.ResourceNamespaceRDK,
 		Type:      cameraType,
 		Model:     model,
 		Attributes: config.AttributeMap{

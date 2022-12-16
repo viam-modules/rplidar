@@ -26,15 +26,14 @@ import (
 )
 
 const (
-	// ModelName is how the lidar will be registered into rdk.
-	ModelName      = "rplidar"
+	model          = "rplidar"
 	defaultTimeout = uint(1000)
 	// DefaultPort is the default port for the rplidar.
 	DefaultPort = 4444
 )
 
 func init() {
-	registry.RegisterComponent(camera.Subtype, ModelName, registry.Component{
+	registry.RegisterComponent(camera.Subtype, model, registry.Component{
 		Constructor: func(ctx context.Context, _ registry.Dependencies, config config.Component, logger golog.Logger) (interface{}, error) {
 			port := config.Attributes.Int("port", DefaultPort)
 			devicePath := config.Attributes.String("device_path")

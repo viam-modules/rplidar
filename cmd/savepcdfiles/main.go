@@ -24,10 +24,10 @@ import (
 )
 
 var (
-	defaultTimeDeltaMilliseconds = 100
-	defaultDataFolder            = "data"
-	logger                       = golog.NewLogger("save_pcd_files")
-	name                         = "rplidar"
+	defaultTimeDeltaMs = 100
+	defaultDataFolder  = "data"
+	logger             = golog.NewLogger("save_pcd_files")
+	name               = "rplidar"
 )
 
 func main() {
@@ -36,9 +36,9 @@ func main() {
 
 // Arguments for the command.
 type Arguments struct {
-	TimeDeltaMilliseconds int    `flag:"delta,usage=delta ms"`
-	DevicePath            string `flag:"device,usage=device path"`
-	DataFolder            string `flag:"datafolder,usage=datafolder path"`
+	TimeDeltaMs int    `flag:"delta,usage=delta ms"`
+	DevicePath  string `flag:"device,usage=device path"`
+	DataFolder  string `flag:"datafolder,usage=datafolder path"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -48,10 +48,9 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return err
 	}
 
-	scanTimeDelta := getTimeDeltaMilliseconds(argsParsed.TimeDeltaMilliseconds, defaultTimeDeltaMilliseconds, logger)
+	scanTimeDelta := getTimeDeltaMs(argsParsed.TimeDeltaMs, defaultTimeDeltaMs, logger)
 
 	lidarDevice, err := rplidar.CreateRplidarComponent(name,
-		rplidar.ModelName,
 		argsParsed.DevicePath,
 		camera.SubtypeName,
 		logger)
@@ -80,9 +79,9 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	return savePCDFiles(ctx, myRobot, rplidar, dataFolder, scanTimeDelta, logger)
 }
 
-func savePCDFiles(ctx context.Context, contextCloser utils.ContextCloser, rplidar camera.PointCloudSource, dataFolder string, timeDeltaMilliseconds int, logger golog.Logger) error {
+func savePCDFiles(ctx context.Context, contextCloser utils.ContextCloser, rplidar camera.PointCloudSource, dataFolder string, scanTimeDelta int, logger golog.Logger) error {
 	for {
-		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(timeDeltaMilliseconds)))*time.Millisecond) {
+		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(scanTimeDelta)))*time.Millisecond) {
 			return multierr.Combine(ctx.Err(), contextCloser.Close(ctx))
 		}
 
@@ -119,13 +118,13 @@ func savePCDFile(dataFolder string, timeStamp time.Time, pc pointcloud.PointClou
 	return f.Close()
 }
 
-func getTimeDeltaMilliseconds(scanTimeDelta, defaultTimeDeltaMilliseconds int, logger golog.Logger) int {
+func getTimeDeltaMs(scanTimeDelta, defaultTimeDeltaMs int, logger golog.Logger) int {
 	// Based on empirical data, we can see that the rplidar collects data at a rate of 15Hz,
 	// which is ~ 66ms per scan. This issues a warning to the user, in case they're expecting
 	// to receive data at a higher rate than what is technically possible.
 	if scanTimeDelta == 0 {
-		logger.Debugf("using default time delta %d ", defaultTimeDeltaMilliseconds)
-		return defaultTimeDeltaMilliseconds
+		logger.Debugf("using default time delta %d ", defaultTimeDeltaMs)
+		return defaultTimeDeltaMs
 	}
 	logger.Debugf("using user defined time delta %d ", scanTimeDelta)
 
