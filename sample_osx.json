@@ -8,7 +8,7 @@
     "components": [
         {
             "name": "rplidar_test",
-            "namespace": "viam",
+            "namespace": "rdk",
             "type": "camera",
             "model": "viam:camera:rplidar",
             "attributes": {
