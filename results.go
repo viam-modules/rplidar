@@ -4,7 +4,7 @@ package rplidar
 import "go.viam.com/rplidar/gen"
 
 type (
-	// Result describes the status of an RPLidar operation.
+	// Result describes the status of an rplidar operation.
 	Result uint32
 
 	// ResultError is a result that encodes an error.

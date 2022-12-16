@@ -1,0 +1,16 @@
+{
+    "modules": [
+        {
+            "name": "rplidar_module",
+            "executable_path": "./bin/rplidar_server"
+        }
+    ],
+    "components": [
+        {
+            "name": "rplidar_test",
+            "namespace": "viam",
+            "type": "camera",
+            "model": "rplidar"
+        }
+    ]
+}
