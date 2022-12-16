@@ -10,7 +10,7 @@
             "name": "rplidar_test",
             "namespace": "viam",
             "type": "camera",
-            "model": "rplidar",
+            "model": "viam:camera:rplidar",
             "attributes": {
                 "device_path": "/dev/tty.SLAB_USBtoUART"
             }
