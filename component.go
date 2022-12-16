@@ -44,7 +44,7 @@ func CreateRplidarComponent(name, model, devicePath string, cameraType resource.
 	}
 
 	rplidarComponent := config.Component{
-		Namespace: "rdk",
+		Namespace: resource.ResourceNamespaceRDK,
 		Name:      name,
 		Type:      cameraType,
 		Model:     model,

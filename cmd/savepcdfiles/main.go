@@ -80,10 +80,10 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	return savePCDFiles(ctx, myRobot, rplidar, dataFolder, scanTimeDelta, logger)
 }
 
-func savePCDFiles(ctx context.Context, myRobot utils.ContextCloser, rplidar camera.PointCloudSource, dataFolder string, timeDeltaMilliseconds int, logger golog.Logger) error {
+func savePCDFiles(ctx context.Context, contextCloser utils.ContextCloser, rplidar camera.PointCloudSource, dataFolder string, timeDeltaMilliseconds int, logger golog.Logger) error {
 	for {
 		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(timeDeltaMilliseconds)))*time.Millisecond) {
-			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
+			return multierr.Combine(ctx.Err(), contextCloser.Close(ctx))
 		}
 
 		pc, err := rplidar.NextPointCloud(ctx)
@@ -92,7 +92,7 @@ func savePCDFiles(ctx context.Context, myRobot utils.ContextCloser, rplidar came
 				logger.Warnf("Skipping this scan due to error: %v", err)
 				continue
 			} else {
-				return multierr.Combine(err, myRobot.Close(ctx))
+				return multierr.Combine(err, contextCloser.Close(ctx))
 			}
 		}
 		if err = savePCDFile(dataFolder, time.Now(), pc); err != nil {
