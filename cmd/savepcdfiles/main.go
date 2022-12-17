@@ -1,20 +1,22 @@
 package main
 
 import (
+	"bufio"
 	"context"
 	"errors"
+	"os"
+	"path/filepath"
 
 	"math"
 	"time"
 
 	"go.uber.org/multierr"
 	"go.viam.com/rplidar"
-	"go.viam.com/rplidar/helper"
 
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
-	"go.viam.com/rdk/robot"
+	"go.viam.com/rdk/pointcloud"
 
 	"go.viam.com/utils"
 
@@ -22,10 +24,10 @@ import (
 )
 
 var (
-	defaultTimeDeltaMilliseconds = 100
-	defaultDataFolder            = "data"
-	logger                       = golog.NewLogger("save_pcd_files")
-	name                         = "rplidar"
+	defaultTimeDeltaMs = 100
+	defaultDataFolder  = "data"
+	logger             = golog.NewLogger("save_pcd_files")
+	name               = "rplidar"
 )
 
 func main() {
@@ -34,9 +36,9 @@ func main() {
 
 // Arguments for the command.
 type Arguments struct {
-	TimeDeltaMilliseconds int    `flag:"delta,usage=delta ms"`
-	DevicePath            string `flag:"device,usage=device path"`
-	DataFolder            string `flag:"datafolder,usage=datafolder path"`
+	TimeDeltaMs int    `flag:"delta,usage=delta ms"`
+	DevicePath  string `flag:"device,usage=device path"`
+	DataFolder  string `flag:"datafolder,usage=datafolder path"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -46,13 +48,10 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		return err
 	}
 
-	scanTimeDelta := helper.GetTimeDeltaMilliseconds(argsParsed.TimeDeltaMilliseconds, defaultTimeDeltaMilliseconds, logger)
+	scanTimeDelta := getTimeDeltaMs(argsParsed.TimeDeltaMs, defaultTimeDeltaMs, logger)
 
-	lidarDevice, err := helper.CreateRplidarComponent(name,
-		rplidar.ModelName,
+	lidarDevice, err := rplidar.CreateRplidarComponent(name,
 		argsParsed.DevicePath,
-		argsParsed.DataFolder,
-		defaultDataFolder,
 		camera.SubtypeName,
 		logger)
 	if err != nil {
@@ -72,14 +71,18 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 
 	rplidar := res.(camera.Camera)
 
-	return savePCDFiles(ctx, myRobot, rplidar, scanTimeDelta, logger)
+	dataFolder, err := getDataFolder(argsParsed.DataFolder, logger)
+	if err != nil {
+		return err
+	}
+
+	return savePCDFiles(ctx, myRobot, rplidar, dataFolder, scanTimeDelta, logger)
 }
 
-func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.Camera, timeDeltaMilliseconds int, logger golog.Logger) (err error) {
+func savePCDFiles(ctx context.Context, contextCloser utils.ContextCloser, rplidar camera.PointCloudSource, dataFolder string, scanTimeDelta int, logger golog.Logger) error {
 	for {
-		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(timeDeltaMilliseconds)))*time.Millisecond) {
-
-			return multierr.Combine(ctx.Err(), myRobot.Close(ctx))
+		if !utils.SelectContextOrWait(ctx, time.Duration(math.Max(1, float64(scanTimeDelta)))*time.Millisecond) {
+			return multierr.Combine(ctx.Err(), contextCloser.Close(ctx))
 		}
 
 		pc, err := rplidar.NextPointCloud(ctx)
@@ -88,10 +91,60 @@ func savePCDFiles(ctx context.Context, myRobot robot.LocalRobot, rplidar camera.
 				logger.Warnf("Skipping this scan due to error: %v", err)
 				continue
 			} else {
-				return multierr.Combine(err, myRobot.Close(ctx))
+				return multierr.Combine(err, contextCloser.Close(ctx))
 			}
+		}
+		if err = savePCDFile(dataFolder, time.Now(), pc); err != nil {
+			return err
 		}
 
 		logger.Infow("scanned", "pointcloud_size", pc.Size())
 	}
+}
+
+func savePCDFile(dataFolder string, timeStamp time.Time, pc pointcloud.PointCloud) error {
+	f, err := os.Create(dataFolder + "/rplidar_data_" + timeStamp.UTC().Format(time.RFC3339Nano) + ".pcd")
+	if err != nil {
+		return err
+	}
+
+	w := bufio.NewWriter(f)
+	if err = pointcloud.ToPCD(pc, w, pointcloud.PCDBinary); err != nil {
+		return err
+	}
+	if err = w.Flush(); err != nil {
+		return err
+	}
+	return f.Close()
+}
+
+func getTimeDeltaMs(scanTimeDelta, defaultTimeDeltaMs int, logger golog.Logger) int {
+	// Based on empirical data, we can see that the rplidar collects data at a rate of 15Hz,
+	// which is ~ 66ms per scan. This issues a warning to the user, in case they're expecting
+	// to receive data at a higher rate than what is technically possible.
+	if scanTimeDelta == 0 {
+		logger.Debugf("using default time delta %d ", defaultTimeDeltaMs)
+		return defaultTimeDeltaMs
+	}
+	logger.Debugf("using user defined time delta %d ", scanTimeDelta)
+
+	var estimatedTimePerScan int = 66
+	if scanTimeDelta < estimatedTimePerScan {
+		logger.Warnf("the expected scan rate of deltaT=%v is too small, has to be at least %v", scanTimeDelta, estimatedTimePerScan)
+	}
+	return scanTimeDelta
+}
+
+func getDataFolder(dataFolder string, logger golog.Logger) (string, error) {
+	if dataFolder == "" {
+		logger.Debugf("using default data folder '%s' ", defaultDataFolder)
+		dataFolder = defaultDataFolder
+	} else {
+		logger.Debugf("using user defined data folder %s", dataFolder)
+	}
+
+	if err := os.MkdirAll(filepath.Join(".", dataFolder), os.ModePerm); err != nil {
+		return "", errors.New("can not create a new directory named: " + dataFolder)
+	}
+	return dataFolder, nil
 }

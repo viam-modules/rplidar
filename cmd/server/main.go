@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"go.viam.com/rplidar"
-	"go.viam.com/rplidar/helper"
 
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
@@ -21,9 +20,8 @@ import (
 )
 
 var (
-	defaultDataFolder = "data"
-	logger            = golog.NewLogger("server")
-	name              = "rplidar"
+	logger = golog.NewLogger("server")
+	name   = "rplidar"
 )
 
 func main() {
@@ -34,7 +32,6 @@ func main() {
 type Arguments struct {
 	Port       utils.NetPortFlag `flag:"0"`
 	DevicePath string            `flag:"device,usage=device path"`
-	DataFolder string            `flag:"datafolder,usage=datafolder path"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -43,13 +40,10 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	if err := utils.ParseFlags(args, &argsParsed); err != nil {
 		return err
 	}
-	argsParsed.Port = helper.GetPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
+	argsParsed.Port = getPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
 
-	lidarDevice, err := helper.CreateRplidarComponent(name,
-		rplidar.ModelName,
+	lidarDevice, err := rplidar.CreateRplidarComponent(name,
 		argsParsed.DevicePath,
-		argsParsed.DataFolder,
-		defaultDataFolder,
 		camera.SubtypeName,
 		logger)
 	if err != nil {
@@ -59,7 +53,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)
 }
 
-func runServer(ctx context.Context, port int, lidarDevice config.Component, logger golog.Logger) (err error) {
+func runServer(ctx context.Context, port int, lidarDevice config.Component, logger golog.Logger) error {
 
 	cfg := &config.Config{
 		Components: []config.Component{lidarDevice},
@@ -92,4 +86,14 @@ func runServer(ctx context.Context, port int, lidarDevice config.Component, logg
 	}()
 
 	return web.RunWeb(ctx, myRobot, options, logger)
+}
+
+func getPort(port utils.NetPortFlag, defaultPort utils.NetPortFlag, logger golog.Logger) utils.NetPortFlag {
+	if port == 0 {
+		logger.Debugf("using default port %d ", defaultPort)
+		return defaultPort
+	}
+
+	logger.Debugf("using user defined port %d ", port)
+	return port
 }
