@@ -12,7 +12,7 @@ require (
 	github.com/polyfloyd/go-errorlint v1.0.2
 	go.uber.org/multierr v1.8.0
 	go.viam.com/rdk v0.2.5
-	go.viam.com/utils v0.1.6-0.20221213193744-d7c797cdf467
+	go.viam.com/utils v0.1.6-0.20221216234103-3e35192a689c
 	golang.org/x/tools v0.1.12
 )
 
@@ -279,7 +279,7 @@ require (
 	go.uber.org/atomic v1.10.0 // indirect
 	go.uber.org/goleak v1.2.0 // indirect
 	go.uber.org/zap v1.23.0 // indirect
-	go.viam.com/api v0.1.20 // indirect
+	go.viam.com/api v0.1.24 // indirect
 	go.viam.com/test v1.1.1-0.20220909204145-f61b7c01c33e // indirect
 	goji.io v2.0.2+incompatible // indirect
 	golang.org/x/crypto v0.0.0-20221010152910-d6f0a8c073c2 // indirect
