@@ -2,7 +2,7 @@
     "modules": [
         {
             "name": "rplidar_module",
-            "executable_path": "./bin/rplidar_server"
+            "executable_path": "./bin/rplidar_module"
         }
     ],
     "components": [
