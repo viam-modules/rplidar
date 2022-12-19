@@ -11,7 +11,7 @@ require (
 	github.com/pkg/errors v0.9.1
 	github.com/polyfloyd/go-errorlint v1.0.2
 	go.uber.org/multierr v1.8.0
-	go.viam.com/rdk v0.2.5
+	go.viam.com/rdk v0.2.8-0.20221219194122-1a72af4caafe
 	go.viam.com/utils v0.1.6-0.20221216234103-3e35192a689c
 	golang.org/x/tools v0.1.12
 )
@@ -312,9 +312,3 @@ require (
 	mvdan.cc/unparam v0.0.0-20220706161116-678bad134442 // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
-
-replace go.viam.com/rdk => /Users/kat/viam/rdk
-
-replace go.viam.com/api => /Users/kat/viam/api
-
-replace go.viam.com/utils => /Users/kat/viam/goutils
