@@ -29,8 +29,6 @@ import (
 
 const (
 	defaultTimeout = uint(1000)
-	// DefaultPort is the default port for the rplidar.
-	DefaultPort = 4444
 )
 
 var Model = resource.NewModel("viam", "camera", "rplidar")
@@ -43,7 +41,7 @@ func newRplidar(ctx context.Context, _ registry.Dependencies, c config.Component
 	devicePath := c.Attributes.String("device_path")
 	if devicePath == "" {
 		var err error
-		if devicePath, err = SearchForDevicePath(logger); err != nil {
+		if devicePath, err = searchForDevicePath(logger); err != nil {
 			return config.Component{}, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
 		}
 	}
@@ -219,7 +217,7 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	return pos, d
 }
 
-func SearchForDevicePath(logger golog.Logger) (string, error) {
+func searchForDevicePath(logger golog.Logger) (string, error) {
 	var usbInfo = &usb.Identifier{
 		Vendor:  0x10c4,
 		Product: 0xea60,
