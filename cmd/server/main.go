@@ -21,7 +21,7 @@ import (
 
 const (
 	name        = "rplidar"
-	defaultPort = 4443
+	defaultPort = 4444
 )
 
 func main() {
