@@ -20,7 +20,8 @@ import (
 )
 
 const (
-	name = "rplidar"
+	name        = "rplidar"
+	defaultPort = 4443
 )
 
 func main() {
@@ -58,7 +59,7 @@ func runServer(ctx context.Context, lidarDevice config.Component, logger golog.L
 		Components: []config.Component{lidarDevice},
 		Network: config.NetworkConfig{
 			NetworkConfigData: config.NetworkConfigData{
-				BindAddress: fmt.Sprintf("localhost:%v", rplidar.DefaultPort),
+				BindAddress: fmt.Sprintf("localhost:%v", defaultPort),
 			},
 		},
 	}
