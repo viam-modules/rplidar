@@ -33,7 +33,7 @@ It has been tested on the following rplidars:
 
 **macOS**
 
-1. Find the device path name by following [these instructions](https://stackoverflow.com/questions/48291366/how-to-find-dev-name-of-usb-device-for-serial-reading-on-mac-os), further denoted as `YOUR_RPLIDAR_PATH`
+1. Find the device path name by following [these instructions](https://stackoverflow.com/questions/48291366/how-to-find-dev-name-of-usb-device-for-serial-reading-on-mac-os)
     * NOTE: It will likely be this path: `/dev/tty.SLAB_USBtoUART`
 2. Server: `go run cmd/server/main.go -device /dev/tty.SLAB_USBtoUART`
 3. Client: `go run cmd/client/main.go -device /dev/tty.SLAB_USBtoUART`
