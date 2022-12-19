@@ -1,3 +1,4 @@
+// Package main is a module with a rplidar component model.
 package main
 
 import (
