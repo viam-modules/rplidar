@@ -14,7 +14,7 @@ import (
 )
 
 func main() {
-	utils.ContextualMain(mainWithArgs, golog.NewLogger("rplidarServer"))
+	utils.ContextualMain(mainWithArgs, golog.NewLogger("rplidarModule"))
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
