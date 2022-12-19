@@ -1,42 +1,43 @@
 
 # rplidar
-The below will only work for Viam, Inc. employees right now. The C++ code is independent however.
+This repo integrates slamtec rplidar LIDARS within Viam's [RDK](https://github.com/viamrobotics/rdk).
+
+It has been tested on the following rplidars:
+* [RPLIDAR A1](https://www.slamtec.com/en/Lidar/A1)
+* [RPLIDAR A3](https://www.slamtec.com/en/Lidar/A3)
+
+
+## Installation
+1. On linux: `sudo apt install libpcre2-dev`
+1. Install swig (https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/)
+    * Note: Install the latest release of swig (which is swig 4.1.1 as of 12/19/22)
+2. `make`
+3. Dependencies for golang:
+    * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
+    * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
 
 ## Getting started
 
-### Installation
-1. Install swig (https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/)
-2. `make`
-3. Dependencies for golang
-    * Make sure the following is in your shell configuration:
-        * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
-    * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
+### Run rplidar as a modular component
 
-### Running the rplidar
-There are two options: Run a server/client, or a script that saves PCD files into a directory.
+1. Build the module: `make build-module`
+2. Run the [RDK](https://github.com/viamrobotics/rdk) web server using one of the example config files [modules/sample_osx.json](./module/sample_osx.json) or [modules/sample_linux.json](./module/sample_linux.json), depending on your operating system.
+
+### Run rplidar as a standalone server/client
 
 **RPI (Debian)**
 
-Running directly:
-* Server/Client: `go run cmd/server/main.go`
-    * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
-    * Run the client in a separate terminal: `go run cmd/client/main.go`
+* Server: `go run cmd/server/main.go`
+* Client: `go run cmd/client/main.go`
 * Script that saves PCD files: `go run cmd/savepcdfiles/main.go`
 
-Building server:
-* To build the server for later use run `make build-server`
-
-**OSX**
+**macOS**
 
 1. Find the device path name by following [these instructions](https://stackoverflow.com/questions/48291366/how-to-find-dev-name-of-usb-device-for-serial-reading-on-mac-os), further denoted as `YOUR_RPLIDAR_PATH`
     * NOTE: It will likely be this path: `/dev/tty.SLAB_USBtoUART`
-2. Run the server/client, or a script that saves PCD files into a directory:
-    * Server/Client: `go run cmd/server/main.go -device YOUR_RPLIDAR_PATH`
-        * Either view the output in the browser (e.g. <YOUR_IP_ADDRESS>:8081), or
-        * Run the client in a separate terminal: `go run cmd/client/main.go`
-    * Script that saves PCD files: `go run cmd/savepcdfiles/main.go -device YOUR_RPLIDAR_PATH`
-
-An example of how to run the rplidar on osx can be found in [collect_data_osx.sh](./collect_data_osx.sh).
+2. Server: `go run cmd/server/main.go -device /dev/tty.SLAB_USBtoUART`
+3. Client: `go run cmd/client/main.go -device /dev/tty.SLAB_USBtoUART`
+4. Script that saves PCD files: `go run cmd/savepcdfiles/main.go -device /dev/tty.SLAB_USBtoUART -datafolder my_data`
 
 ## Development
 ### Linting
