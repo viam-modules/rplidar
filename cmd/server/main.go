@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 
-	"go.viam.com/rplidar"
-
 	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
+	"go.viam.com/rdk/resource"
+	"go.viam.com/rplidar"
 
 	"go.viam.com/utils"
 
@@ -19,19 +19,18 @@ import (
 	viamutils "go.viam.com/utils"
 )
 
-var (
-	logger = golog.NewLogger("server")
-	name   = "rplidar"
+const (
+	name        = "rplidar"
+	defaultPort = 4444
 )
 
 func main() {
-	utils.ContextualMain(mainWithArgs, logger)
+	utils.ContextualMain(mainWithArgs, golog.NewLogger("server"))
 }
 
 // Arguments for the command.
 type Arguments struct {
-	Port       utils.NetPortFlag `flag:"0"`
-	DevicePath string            `flag:"device,usage=device path"`
+	DevicePath string `flag:"device,usage=device path"`
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
@@ -40,26 +39,27 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	if err := utils.ParseFlags(args, &argsParsed); err != nil {
 		return err
 	}
-	argsParsed.Port = getPort(argsParsed.Port, utils.NetPortFlag(rplidar.DefaultPort), logger)
 
-	lidarDevice, err := rplidar.CreateRplidarComponent(name,
-		argsParsed.DevicePath,
-		camera.SubtypeName,
-		logger)
-	if err != nil {
-		return err
+	rplidarComponent := config.Component{
+		Name:      name,
+		Namespace: resource.ResourceNamespaceRDK,
+		Type:      camera.SubtypeName,
+		Model:     rplidar.Model,
+		Attributes: config.AttributeMap{
+			"device_path": argsParsed.DevicePath,
+		},
 	}
 
-	return runServer(ctx, int(argsParsed.Port), lidarDevice, logger)
+	return runServer(ctx, rplidarComponent, logger)
 }
 
-func runServer(ctx context.Context, port int, lidarDevice config.Component, logger golog.Logger) error {
+func runServer(ctx context.Context, lidarDevice config.Component, logger golog.Logger) error {
 
 	cfg := &config.Config{
 		Components: []config.Component{lidarDevice},
 		Network: config.NetworkConfig{
 			NetworkConfigData: config.NetworkConfigData{
-				BindAddress: fmt.Sprintf("localhost:%v", port),
+				BindAddress: fmt.Sprintf("localhost:%v", defaultPort),
 			},
 		},
 	}
@@ -86,14 +86,4 @@ func runServer(ctx context.Context, port int, lidarDevice config.Component, logg
 	}()
 
 	return web.RunWeb(ctx, myRobot, options, logger)
-}
-
-func getPort(port utils.NetPortFlag, defaultPort utils.NetPortFlag, logger golog.Logger) utils.NetPortFlag {
-	if port == 0 {
-		logger.Debugf("using default port %d ", defaultPort)
-		return defaultPort
-	}
-
-	logger.Debugf("using user defined port %d ", port)
-	return port
 }

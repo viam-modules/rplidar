@@ -3,66 +3,68 @@ package rplidar
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"sync"
 	"time"
 
 	"go.viam.com/rplidar/gen"
+	"go.viam.com/utils/usb"
 
 	goutils "go.viam.com/utils"
 
 	"github.com/edaniels/golog"
 	"github.com/edaniels/gostream"
 	"github.com/golang/geo/r3"
+	"github.com/pkg/errors"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/components/generic"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
+	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
 )
 
 const (
-	model          = "rplidar"
 	defaultTimeout = uint(1000)
-	// DefaultPort is the default port for the rplidar.
-	DefaultPort = 4444
 )
 
+var Model = resource.NewModel("viam", "camera", "rplidar")
+
 func init() {
-	registry.RegisterComponent(camera.Subtype, model, registry.Component{
-		Constructor: func(ctx context.Context, _ registry.Dependencies, config config.Component, logger golog.Logger) (interface{}, error) {
-			devicePath := config.Attributes.String("device_path")
-			if devicePath == "" {
-				return nil, errors.New("need to specify a devicePath (ex. /dev/ttyUSB0)")
-			}
-			return NewRPLidar(logger, devicePath)
-		}})
+	registry.RegisterComponent(camera.Subtype, Model, registry.Component{Constructor: newRplidar})
 }
 
-// NewRPLidar returns a new RPLidar device at the given path.
-func NewRPLidar(logger golog.Logger, devicePath string) (camera.Camera, error) {
+func newRplidar(ctx context.Context, _ registry.Dependencies, c config.Component, logger golog.Logger) (interface{}, error) {
+	devicePath := c.Attributes.String("device_path")
+	if devicePath == "" {
+		var err error
+		if devicePath, err = searchForDevicePath(logger); err != nil {
+			return config.Component{}, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
+		}
+	}
+	logger.Info("connected to device at path " + devicePath)
+
 	rplidarDevice, err := getRplidarDevice(devicePath)
 	if err != nil {
 		return nil, err
 	}
 
-	rp := &RPLidar{
+	rp := &Rplidar{
 		device:                  rplidarDevice,
 		nodeSize:                8192,
 		logger:                  logger,
 		defaultNumScans:         1,
 		warmupNumDiscardedScans: 5,
 	}
-	rp.Start()
+	rp.start()
 	return rp, nil
 }
 
-// RPLidar controls an RPLidar device.
-type RPLidar struct {
+// Rplidar controls an Rplidar device.
+type Rplidar struct {
 	generic.Unimplemented
 	mu                      sync.Mutex
 	device                  rplidarDevice
@@ -76,8 +78,19 @@ type RPLidar struct {
 	logger golog.Logger
 }
 
-// Start requests that the rplidar starts up and starts spinning.
-func (rp *RPLidar) Start() {
+// NextPointCloud performs a scan on the rplidar and performs some filtering to clean up the data.
+func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
+	rp.mu.Lock()
+	defer rp.mu.Unlock()
+	pc, err := rp.getPointCloud(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return pc, nil
+}
+
+// start requests that the rplidar starts up and starts spinning.
+func (rp *Rplidar) start() {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
 
@@ -88,8 +101,8 @@ func (rp *RPLidar) Start() {
 	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
 }
 
-// Stop request that the rplidar stops spinning.
-func (rp *RPLidar) Stop() {
+// stop request that the rplidar stops spinning.
+func (rp *Rplidar) stop() {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
 
@@ -105,18 +118,7 @@ func (rp *RPLidar) Stop() {
 	rp.started = false
 }
 
-// NextPointCloud performs a scan on the rplidar and performs some filtering to clean up the data.
-func (rp *RPLidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
-	rp.mu.Lock()
-	defer rp.mu.Unlock()
-	pc, err := rp.getPointCloud(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return pc, nil
-}
-
-func (rp *RPLidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
+func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
 	pc := pointcloud.New()
 	nodeCount := int64(rp.nodeSize)
 
@@ -151,9 +153,9 @@ func (rp *RPLidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 	return pc, nil
 }
 
-func (rp *RPLidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
+func (rp *Rplidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
 	if !rp.started {
-		rp.Start()
+		rp.start()
 	}
 
 	// wait and then discard scans for warmup
@@ -173,27 +175,27 @@ func (rp *RPLidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, er
 }
 
 // Properties is a part of the Camera interface but is not implemented for the rplidar.
-func (rp *RPLidar) Properties(ctx context.Context) (camera.Properties, error) {
+func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
 	var props camera.Properties
 	return props, utils.NewUnimplementedInterfaceError("Properties", nil)
 }
 
 // Projector is a part of the Camera interface but is not implemented for the rplidar.
-func (rp *RPLidar) Projector(ctx context.Context) (transform.Projector, error) {
+func (rp *Rplidar) Projector(ctx context.Context) (transform.Projector, error) {
 	var proj transform.Projector
 	return proj, utils.NewUnimplementedInterfaceError("Projector", nil)
 }
 
 // Stream is a part of the Camera interface but is not implemented for the rplidar.
-func (rp *RPLidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
+func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
 	var stream gostream.VideoStream
 	return stream, utils.NewUnimplementedInterfaceError("Stream", nil)
 }
 
 // Close stops the rplidar and disposes of the driver.
-func (rp *RPLidar) Close(ctx context.Context) error {
+func (rp *Rplidar) Close(ctx context.Context) error {
 	if rp.device.driver != nil {
-		rp.Stop()
+		rp.stop()
 		gen.RPlidarDriverDisposeDriver(rp.device.driver)
 		rp.device.driver = nil
 	}
@@ -214,4 +216,27 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	d.SetIntensity(uint16(reflectivity) * 255)
 
 	return pos, d
+}
+
+func searchForDevicePath(logger golog.Logger) (string, error) {
+	var usbInfo = &usb.Identifier{
+		Vendor:  0x10c4,
+		Product: 0xea60,
+	}
+
+	usbDevices := usb.Search(
+		usb.SearchFilter{},
+		func(vendorID, productID int) bool {
+			return vendorID == usbInfo.Vendor && productID == usbInfo.Product
+		})
+
+	if len(usbDevices) == 0 {
+		return "", errors.New("no usb devices found")
+	}
+
+	logger.Debugf("detected %d lidar devices", len(usbDevices))
+	for _, comp := range usbDevices {
+		logger.Debug(comp)
+	}
+	return usbDevices[0].Path, nil
 }

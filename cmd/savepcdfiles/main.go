@@ -17,21 +17,21 @@ import (
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
+	"go.viam.com/rdk/resource"
 
 	"go.viam.com/utils"
 
 	robotimpl "go.viam.com/rdk/robot/impl"
 )
 
-var (
-	defaultTimeDeltaMs = 100
-	defaultDataFolder  = "data"
-	logger             = golog.NewLogger("save_pcd_files")
+const (
 	name               = "rplidar"
+	defaultDataFolder  = "data"
+	defaultTimeDeltaMs = 100
 )
 
 func main() {
-	utils.ContextualMain(mainWithArgs, logger)
+	utils.ContextualMain(mainWithArgs, golog.NewLogger("savePcdFiles"))
 }
 
 // Arguments for the command.
@@ -50,15 +50,23 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 
 	scanTimeDelta := getTimeDeltaMs(argsParsed.TimeDeltaMs, defaultTimeDeltaMs, logger)
 
-	lidarDevice, err := rplidar.CreateRplidarComponent(name,
-		argsParsed.DevicePath,
-		camera.SubtypeName,
-		logger)
+	dataFolder, err := getDataFolder(argsParsed.DataFolder, logger)
 	if err != nil {
 		return err
 	}
 
-	cfg := &config.Config{Components: []config.Component{lidarDevice}}
+	rplidarComponent := config.Component{
+		Name:      name,
+		Namespace: resource.ResourceNamespaceRDK,
+		Type:      camera.SubtypeName,
+		Model:     rplidar.Model,
+		Attributes: config.AttributeMap{
+			"device_path": argsParsed.DevicePath,
+		},
+	}
+
+	cfg := &config.Config{Components: []config.Component{rplidarComponent}}
+
 	myRobot, err := robotimpl.New(ctx, cfg, logger)
 	if err != nil {
 		return err
@@ -70,11 +78,6 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 
 	rplidar := res.(camera.Camera)
-
-	dataFolder, err := getDataFolder(argsParsed.DataFolder, logger)
-	if err != nil {
-		return err
-	}
 
 	return savePCDFiles(ctx, myRobot, rplidar, dataFolder, scanTimeDelta, logger)
 }

@@ -17,29 +17,27 @@ import (
 	"go.viam.com/utils/rpc"
 )
 
+const (
+	name        = "rplidar"
+	defaultPort = "4444"
+)
+
 func main() {
-	utils.ContextualMain(mainWithArgs, logger)
-}
-
-var logger = golog.NewLogger("client")
-
-// Arguments for the command.
-type Arguments struct {
-	DeviceAddress string `flag:"device,required,default=localhost:8081,usage=device address"`
+	utils.ContextualMain(mainWithArgs, golog.NewLogger("client"))
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
-	var argsParsed Arguments
-	if err := utils.ParseFlags(args, &argsParsed); err != nil {
-		return err
-	}
-
-	return runClient(ctx, argsParsed.DeviceAddress, logger)
+	return runClient(ctx, logger)
 }
 
-func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) error {
+func runClient(ctx context.Context, logger golog.Logger) error {
 
-	robotClient, err := client.New(ctx, deviceAddress, logger, client.WithDialOptions(rpc.WithInsecure()))
+	// Connect to the default localhost port for the rplidar.
+	robotClient, err := client.New(
+		ctx,
+		"localhost:"+defaultPort,
+		logger,
+		client.WithDialOptions(rpc.WithInsecure()))
 	if err != nil {
 		return err
 	}
@@ -48,7 +46,7 @@ func runClient(ctx context.Context, deviceAddress string, logger golog.Logger) e
 		err = multierr.Combine(err, robotClient.Close(ctx))
 	}()
 
-	res, err := robotClient.ResourceByName(camera.Named("rplidar"))
+	res, err := robotClient.ResourceByName(camera.Named(name))
 	if err != nil {
 		return errors.Wrap(err, "failed to find component")
 	}
