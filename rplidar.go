@@ -45,6 +45,7 @@ func newRplidar(ctx context.Context, _ registry.Dependencies, c config.Component
 			return config.Component{}, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
 		}
 	}
+	logger.Info("connected to device at path " + devicePath)
 
 	rplidarDevice, err := getRplidarDevice(devicePath)
 	if err != nil {

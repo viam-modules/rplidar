@@ -29,7 +29,7 @@ It has been tested on the following rplidars:
 
 * Server: `go run cmd/server/main.go`
 * Client: `go run cmd/client/main.go`
-* Script that saves PCD files: `go run cmd/savepcdfiles/main.go`
+* Script that saves PCD files: `go run cmd/savepcdfiles/main.go -datafolder my_data`
 
 **macOS**
 

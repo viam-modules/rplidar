@@ -31,7 +31,7 @@ const (
 )
 
 func main() {
-	utils.ContextualMain(mainWithArgs, golog.NewLogger("save_pcd_files"))
+	utils.ContextualMain(mainWithArgs, golog.NewLogger("savePcdFiles"))
 }
 
 // Arguments for the command.
