@@ -8,13 +8,17 @@ It has been tested on the following rplidars:
 
 
 ## Installation
-1. On linux: `sudo apt install libpcre2-dev`
-1. Install swig (https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/)
-    * Note: Install the latest release of swig (which is swig 4.1.1 as of 12/19/22)
+1. Install swig:
+   * On MacOS:
+      * `brew install swig`
+   * On Linux:
+      * `sudo apt install libpcre2-dev`
+      * Install swig (https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/)
+         * Note: Install the latest release of swig (which is swig 4.1.1 as of 12/19/22)
 2. `make`
 3. Dependencies for golang:
-    * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
-    * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
+   * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
+   * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
 
 ## Getting started
 
