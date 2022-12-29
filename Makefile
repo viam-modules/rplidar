@@ -20,19 +20,24 @@ lint: goformat
 test:
 	go test -v -coverprofile=coverage.txt -covermode=atomic ./...
 
-sdk:
+build-sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE)
+
+sdk:  build-sdk
 	sudo cp gen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/librplidar_sdk.a /usr/local/lib/
 	sudo chmod 755 /usr/local/lib/librplidar_sdk.a
 
+clean-sdk:
+	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
+
 swig:
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
-
-clean:
-	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
 
 build-module:
 	mkdir -p bin && go build -o bin/rplidar_module module/main.go
 
 build-server:
 	mkdir -p bin && go build -o bin/rplidar_server cmd/server/main.go
+
+clean: clean-sdk
+	rm -rf bin
