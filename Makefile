@@ -41,3 +41,5 @@ build-server:
 
 clean: clean-sdk
 	rm -rf bin
+	rm gen/gen_wrap.cxx
+	rm gen/gen.go
