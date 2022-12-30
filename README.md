@@ -12,9 +12,27 @@ It has been tested on the following rplidars:
    * On MacOS:
       * `brew install swig`
    * On Linux:
-      * `sudo apt install libpcre2-dev`
-      * Install swig (https://www.dev2qa.com/how-to-install-swig-on-macos-linux-and-windows/)
-         * Note: Install the latest release of swig (which is swig 4.1.1 as of 12/19/22)
+        ```bash
+        # Install g++
+        sudo apt-get install g++
+        # Install pcre
+        sudo apt-get install libpcre3 libpcre3-dev libpcre2-dev
+        # Download swig (source: http://www.swig.org/download.html)
+        wget http://prdownloads.sourceforge.net/swig/swig-4.1.1.tar.gz
+        # Unzip file & cd into directory
+        chmod 777 swig-4.1.1.tar.gz && tar -xzvf swig-4.1.1.tar.gz
+        cd swig-4.1.1
+        # Specify swig install directory, e.g.:
+        ./configure --prefix=/home/testbot/swigtool
+        # Compile and install
+        sudo make
+        sudo make install
+        # Add SWIG_PATH environment variable and add it in PATH
+        export SWIG_PATH=/home/testbot/swigtool/bin
+        export PATH=$SWIG_PATH:$PATH
+        # Check if it is installed successfully
+        swig -version
+        ```
 2. `make`
 3. Dependencies for golang:
    * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
