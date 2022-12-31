@@ -1,6 +1,7 @@
 OS=$(shell uname)
 VERSION=v1.12.0
 CGO_LDFLAGS="-Lgen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
+BUILD_CHANNEL?=local
 
 all: swig
 .PHONY: all
@@ -27,6 +28,13 @@ sdk:
 clean-sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
 
+install-swig:
+	ifeq ("Darwin", "$(shell uname -s)")
+		brew install swig	
+	else
+		./etc/install_swig_linux.sh
+	endif
+
 swig: sdk
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
 
@@ -38,3 +46,12 @@ build-server: swig
 
 clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
+
+appimage: build-module
+	cd etc/packaging/appimages && BUILD_CHANNEL=${BUILD_CHANNEL} appimage-builder --recipe rplidar-module-`uname -m`.yml
+	cd etc/packaging/appimages && ./package_release.sh
+	mkdir -p etc/packaging/appimages/deploy/
+	mv etc/packaging/appimages/*.AppImage* etc/packaging/appimages/deploy/
+	chmod 755 etc/packaging/appimages/deploy/*.AppImage
+
+include *.make
