@@ -28,3 +28,6 @@ sudo make install
 # Add SWIG_PATH environment variable and add it in PATH
 export SWIG_PATH=/home/$(whoami)/swigtool/bin
 export PATH=$SWIG_PATH:$PATH
+# Remove swig tar file and extracted directory again
+rm swig-4.1.1.tar.gz
+rm -rf swig-4.1.1
