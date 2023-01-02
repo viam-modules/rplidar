@@ -29,11 +29,11 @@ clean-sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
 
 install-swig:
-	ifeq ("Darwin", "$(shell uname -s)")
-		brew install swig	
-	else
-		./etc/install_swig_linux.sh
-	endif
+ifeq ("Darwin", "$(shell uname -s)")
+	brew install swig	
+else
+	./etc/install_swig_linux.sh
+endif
 
 swig: sdk
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
