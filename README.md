@@ -12,8 +12,10 @@ It has been tested on the following rplidars:
    * On Linux: `export SWIG_PATH=/home/$(whoami)/swigtool/bin && export PATH=$SWIG_PATH:$PATH`
 2. `make`
 3. Dependencies for golang:
-   * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`
-   * `git config --global url.ssh://git@github.com/.insteadOf https://github.com/`
+   ```bash
+   export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*
+   git config --global url.ssh://git@github.com/.insteadOf https://github.com/
+   ```
 
 ## Getting started
 
