@@ -49,8 +49,8 @@ build-server:
 
 clean: clean-sdk
 	rm -rf bin
-	rm gen/gen_wrap.cxx
-	rm gen/gen.go
+	rm gen/gen_wrap.cxx || true
+	rm gen/gen.go || true
 
 appimage: build-module
 	cd etc/packaging/appimages && BUILD_CHANNEL=${BUILD_CHANNEL} appimage-builder --recipe rplidar-module-`uname -m`.yml

@@ -9,6 +9,7 @@ It has been tested on the following rplidars:
 
 ## Installation
 1. Install swig: `make install-swig`
+   * On Linux: `export SWIG_PATH=/home/$(whoami)/swigtool/bin && export PATH=$SWIG_PATH:$PATH`
 2. `make`
 3. Dependencies for golang:
    * `export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*`

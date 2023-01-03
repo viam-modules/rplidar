@@ -19,15 +19,13 @@ sudo apt -y install libpcre3 libpcre3-dev libpcre2-dev
 wget http://prdownloads.sourceforge.net/swig/swig-4.1.1.tar.gz
 # Unzip file & cd into directory
 chmod a+rx swig-4.1.1.tar.gz && tar -xzvf swig-4.1.1.tar.gz
-cd swig-4.1.1
+pushd swig-4.1.1
 # Specify swig install directory, e.g.:
 ./configure --prefix=/home/$(whoami)/swigtool
 # Compile and install
 sudo make
 sudo make install
-# Add SWIG_PATH environment variable and add it in PATH
-export SWIG_PATH=/home/$(whoami)/swigtool/bin
-export PATH=$SWIG_PATH:$PATH
 # Remove swig tar file and extracted directory again
+popd
 rm swig-4.1.1.tar.gz
 rm -rf swig-4.1.1
