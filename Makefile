@@ -1,5 +1,6 @@
 OS=$(shell uname)
 VERSION=v1.12.0
+CGO_LDFLAGS="-Lgen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
 
 all: sdk swig
 .PHONY: all
@@ -20,26 +21,20 @@ lint: goformat
 test:
 	go test -v -coverprofile=coverage.txt -covermode=atomic ./...
 
-build-sdk:
+sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE)
-
-sdk:  build-sdk
-	sudo cp gen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/librplidar_sdk.a /usr/local/lib/
-	sudo chmod 755 /usr/local/lib/librplidar_sdk.a
 
 clean-sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
 
-swig:
+swig: sdk
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
 
-build-module:
+build-module: swig
 	mkdir -p bin && go build -o bin/rplidar-module module/main.go
 
-build-server:
+build-server: swig
 	mkdir -p bin && go build -o bin/rplidar_server cmd/server/main.go
 
 clean: clean-sdk
-	rm -rf bin
-	rm gen/gen_wrap.cxx
-	rm gen/gen.go
+	rm -rf bin gen/gen_wrap.cxx gen/gen.go
