@@ -34,7 +34,7 @@ swig:
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
 
 build-module:
-	mkdir -p bin && go build -o bin/rplidar_module module/main.go
+	mkdir -p bin && go build -o bin/rplidar-module module/main.go
 
 build-server:
 	mkdir -p bin && go build -o bin/rplidar_server cmd/server/main.go
