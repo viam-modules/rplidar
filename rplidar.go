@@ -31,7 +31,7 @@ const (
 	defaultTimeout = uint(1000)
 )
 
-var Model = resource.NewModel("rdk", "builtin", "rplidar")
+var Model = resource.NewModel("viam", "lidar", "rplidar")
 
 func init() {
 	registry.RegisterComponent(camera.Subtype, Model, registry.Component{Constructor: newRplidar})
