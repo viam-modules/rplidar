@@ -2,7 +2,7 @@ OS=$(shell uname)
 VERSION=v1.12.0
 CGO_LDFLAGS="-Lgen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
 
-all: sdk swig
+all: swig
 .PHONY: all
 
 goformat:
