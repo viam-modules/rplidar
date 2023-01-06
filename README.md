@@ -16,12 +16,12 @@ It has been tested on the following rplidars:
       ```
    * Linux AArch64 (ARM64) (e.g., on an RPI):
       ```bash
-      sudo curl -o /usr/local/bin/rplidar-module http://packages.viam.com/apps/rplidar/rplidar-module-latest-x86_64.AppImage
+      sudo curl -o /usr/local/bin/rplidar-module http://packages.viam.com/apps/rplidar/rplidar-module-latest-aarch64.AppImage
       sudo chmod a+rx /usr/local/bin/rplidar-module
       ```
    * Linux x86_64:
       ```bash
-      sudo curl -o /usr/local/bin/rplidar-module http://packages.viam.com/apps/rplidar/rplidar-module-latest-aarch64.AppImage
+      sudo curl -o /usr/local/bin/rplidar-module http://packages.viam.com/apps/rplidar/rplidar-module-latest-x86_64.AppImage
       sudo chmod a+rx /usr/local/bin/rplidar-module
       ```
 2. Run the [RDK](https://github.com/viamrobotics/rdk) web server using one of the example config files [modules/sample_osx.json](./module/sample_osx.json) or [modules/sample_linux.json](./module/sample_linux.json), depending on your operating system. 
