@@ -52,6 +52,6 @@ appimage: build-module
 	cd etc/packaging/appimages && ./package_release.sh
 	mkdir -p etc/packaging/appimages/deploy/
 	mv etc/packaging/appimages/*.AppImage* etc/packaging/appimages/deploy/
-	chmod 755 etc/packaging/appimages/deploy/*.AppImage
+	chmod a+rx etc/packaging/appimages/deploy/*.AppImage
 
 include *.make
