@@ -3,7 +3,7 @@ VERSION=v1.12.0
 CGO_LDFLAGS="-Lgen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
 BUILD_CHANNEL?=local
 
-all: swig
+all: install-swig swig
 .PHONY: all
 
 goformat:
@@ -32,7 +32,7 @@ install-swig:
 ifeq ("Darwin", "$(shell uname -s)")
 	brew install swig	
 else
-	./etc/install_swig_linux.sh
+	sudo apt install swig -y
 endif
 
 swig: sdk
