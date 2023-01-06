@@ -45,7 +45,7 @@ build-server: swig
 	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build -o bin/rplidar_server cmd/server/main.go
 
 clean: clean-sdk
-	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
+	rm -rf bin gen/gen_wrap.cxx gen/gen.go
 
 appimage: build-module
 	cd etc/packaging/appimages && BUILD_CHANNEL=${BUILD_CHANNEL} appimage-builder --recipe rplidar-module-`uname -m`.yml
