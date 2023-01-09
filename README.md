@@ -28,13 +28,7 @@ It has been tested on the following rplidars:
 
 ## Development
 
-### Installation
-1. `make`
-3. Dependencies for golang:
-   ```bash
-   export GOPRIVATE=github.com/viamrobotics/*,go.viam.com/*
-   git config --global url.ssh://git@github.com/.insteadOf https://github.com/
-   ```
+Run `make install-swig`.
 
 ### Run rplidar as a modular component
 

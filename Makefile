@@ -2,8 +2,8 @@ OS=$(shell uname)
 VERSION=v1.12.0
 CGO_LDFLAGS="-Lgen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
 
-all: install-swig swig
-.PHONY: all
+default: install-swig swig
+.PHONY: default
 
 goformat:
 	go install golang.org/x/tools/cmd/goimports
