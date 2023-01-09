@@ -2,8 +2,8 @@ OS=$(shell uname)
 VERSION=v1.12.0
 CGO_LDFLAGS="-Lgen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
 
-all: swig
-.PHONY: all
+default: install-swig swig
+.PHONY: default
 
 goformat:
 	go install golang.org/x/tools/cmd/goimports
@@ -27,6 +27,13 @@ sdk:
 clean-sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
 
+install-swig:
+ifeq (, $(shell brew --version 2>/dev/null))
+	sudo apt install swig -y
+else
+	brew install swig	
+endif
+
 swig: sdk
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
 
@@ -38,3 +45,14 @@ build-server: swig
 
 clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
+
+appimage: build-module
+	cd etc/packaging/appimages && appimage-builder --recipe rplidar-module-`uname -m`.yml
+	mkdir -p etc/packaging/appimages/deploy/
+	mv etc/packaging/appimages/*.AppImage* etc/packaging/appimages/deploy/
+	chmod a+rx etc/packaging/appimages/deploy/*.AppImage
+
+clean-appimage:
+	rm -rf etc/packaging/appimages/AppDir && rm -rf etc/packaging/appimages/appimage-build && rm -rf etc/packaging/appimages/deploy
+
+include *.make
