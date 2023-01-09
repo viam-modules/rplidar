@@ -1,1 +1,4 @@
-# comment
+name: Build AppImage rplidar module
+
+on:
+  workflow_dispatch:
