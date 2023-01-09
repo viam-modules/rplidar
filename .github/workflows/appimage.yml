@@ -1,4 +1,55 @@
 name: Build AppImage rplidar module
 
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+
 on:
   workflow_dispatch:
+  push:
+    branches: [ 'main' ]
+    paths-ignore:
+      - 'README.md'
+
+jobs:
+  appimage:
+    name: AppImage Build Rplidar Module
+    strategy:
+      matrix:
+        include:
+          - arch: [x64, qemu-host]
+            image: ghcr.io/viamrobotics/canon:amd64-cache
+            platform: linux/amd64
+          - arch: [arm64, qemu-host]
+            image: ghcr.io/viamrobotics/canon:arm64-cache
+            platform: linux/arm64
+    runs-on: ${{ matrix.arch }}
+    container:
+      image: ${{ matrix.image }}
+      options: --platform ${{ matrix.platform }}
+    timeout-minutes: 15
+    outputs:
+      date: ${{ steps.build_test_app.outputs.date }}
+
+    steps:
+      - name: Check out main branch code
+        uses: actions/checkout@v3
+      
+      - name: Build appimage
+        run: |
+          make install-swig
+          make appimage
+
+      - name: Authorize GCP Upload
+        uses: google-github-actions/auth@v1
+        with:
+          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Deploy Files
+        uses: google-github-actions/upload-cloud-storage@v0.10.4
+        with:
+          headers: "cache-control: no-cache"
+          path: 'etc/packaging/appimages/deploy/'
+          destination: 'packages.viam.com/apps/rplidar/'
+          glob: '*'
+          parent: false
+          gzip: false
