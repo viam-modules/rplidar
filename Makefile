@@ -28,7 +28,7 @@ clean-sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
 
 install-swig:
-ifeq (, $(shell brew --version))
+ifeq (, $(shell brew --version 2>/dev/null))
 	sudo apt install swig -y
 else
 	brew install swig	
