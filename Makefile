@@ -28,10 +28,10 @@ clean-sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
 
 install-swig:
-ifeq ("Darwin", "$(shell uname -s)")
-	brew install swig	
-else
+ifeq (, $(shell brew --version))
 	sudo apt install swig -y
+else
+	brew install swig	
 endif
 
 swig: sdk
@@ -53,8 +53,6 @@ appimage: build-module
 	chmod a+rx etc/packaging/appimages/deploy/*.AppImage
 
 clean-appimage:
-	rm -rf etc/packaging/appimages/AppDir
-	rm -rf etc/packaging/appimages/appimage-build
-	rm -rf etc/packaging/appimages/deploy
+	rm -rf etc/packaging/appimages/AppDir && rm -rf etc/packaging/appimages/appimage-build && rm -rf etc/packaging/appimages/deploy
 
 include *.make
