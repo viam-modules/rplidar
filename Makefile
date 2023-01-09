@@ -1,7 +1,6 @@
 OS=$(shell uname)
 VERSION=v1.12.0
 CGO_LDFLAGS="-Lgen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
-BUILD_CHANNEL?=local
 
 all: install-swig swig
 .PHONY: all
@@ -44,14 +43,18 @@ build-module: swig
 build-server: swig
 	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build -o bin/rplidar_server cmd/server/main.go
 
-clean: clean-sdk
+clean: clean-sdk clean-appimage
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
 
 appimage: build-module
-	cd etc/packaging/appimages && BUILD_CHANNEL=${BUILD_CHANNEL} appimage-builder --recipe rplidar-module-`uname -m`.yml
-	cd etc/packaging/appimages && ./package_release.sh
+	cd etc/packaging/appimages && appimage-builder --recipe rplidar-module-`uname -m`.yml
 	mkdir -p etc/packaging/appimages/deploy/
 	mv etc/packaging/appimages/*.AppImage* etc/packaging/appimages/deploy/
 	chmod a+rx etc/packaging/appimages/deploy/*.AppImage
+
+clean-appimage:
+	rm -rf etc/packaging/appimages/AppDir
+	rm -rf etc/packaging/appimages/appimage-build
+	rm -rf etc/packaging/appimages/deploy
 
 include *.make
