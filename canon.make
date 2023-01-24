@@ -16,7 +16,7 @@ ifeq ("aarch64", "$(shell uname -m)")
 	DOCKER_NATIVE_PLATFORM = --platform linux/arm64
 	DOCKER_NATIVE_TAG = arm64
 	DOCKER_NATIVE_TAG_CACHE = arm64-cache
-else ifeq ("arm64", "$(shell uname -m)")
+else ifeq ("arm64", "$(shell uname -m)")a
 	DOCKER_NATIVE_PLATFORM = --platform linux/arm64
 	DOCKER_NATIVE_TAG = arm64
 	DOCKER_NATIVE_TAG_CACHE = arm64-cache
