@@ -319,3 +319,5 @@ require (
 	mvdan.cc/unparam v0.0.0-20221223090309-7455f1af531d // indirect
 	nhooyr.io/websocket v1.8.7 // indirect
 )
+
+replace go.viam.com/rdk => github.com/edaniels/rdk v0.2.8-0.20230417185438-fe6bf8c0070a

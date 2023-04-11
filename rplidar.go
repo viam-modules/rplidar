@@ -14,16 +14,12 @@ import (
 	goutils "go.viam.com/utils"
 
 	"github.com/edaniels/golog"
-	"github.com/edaniels/gostream"
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
 	"go.viam.com/rdk/components/camera"
-	"go.viam.com/rdk/components/generic"
-	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
 )
@@ -39,12 +35,12 @@ func init() {
 	registry.RegisterComponent(camera.Subtype, Model, registry.Component{Constructor: newRplidar})
 }
 
-func newRplidar(ctx context.Context, _ registry.Dependencies, c config.Component, logger golog.Logger) (interface{}, error) {
+func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config, logger golog.Logger) (resource.Resource, error) {
 	devicePath := c.Attributes.String("device_path")
 	if devicePath == "" {
 		var err error
 		if devicePath, err = searchForDevicePath(logger); err != nil {
-			return config.Component{}, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
+			return &Rplidar{}, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
 		}
 	}
 	logger.Info("connected to device at path " + devicePath)
@@ -67,7 +63,8 @@ func newRplidar(ctx context.Context, _ registry.Dependencies, c config.Component
 
 // Rplidar controls an Rplidar device.
 type Rplidar struct {
-	generic.Unimplemented
+	resource.Named
+	resource.AlwaysRebuild
 	mu                      sync.Mutex
 	device                  rplidarDevice
 	nodes                   gen.Rplidar_response_measurement_node_hq_t
@@ -176,23 +173,23 @@ func (rp *Rplidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, er
 	return pc, nil
 }
 
-// Properties is a part of the Camera interface but is not implemented for the rplidar.
-func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
-	var props camera.Properties
-	return props, utils.NewUnimplementedInterfaceError("Properties", nil)
-}
+// // Properties is a part of the Camera interface but is not implemented for the rplidar.
+// func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
+// 	var props camera.Properties
+// 	return props, utils.NewUnimplementedInterfaceError("Properties", nil)
+// }
 
-// Projector is a part of the Camera interface but is not implemented for the rplidar.
-func (rp *Rplidar) Projector(ctx context.Context) (transform.Projector, error) {
-	var proj transform.Projector
-	return proj, utils.NewUnimplementedInterfaceError("Projector", nil)
-}
+// // Projector is a part of the Camera interface but is not implemented for the rplidar.
+// func (rp *Rplidar) Projector(ctx context.Context) (transform.Projector, error) {
+// 	var proj transform.Projector
+// 	return proj, utils.NewUnimplementedInterfaceError("Projector", nil)
+// }
 
-// Stream is a part of the Camera interface but is not implemented for the rplidar.
-func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
-	var stream gostream.VideoStream
-	return stream, utils.NewUnimplementedInterfaceError("Stream", nil)
-}
+// // Stream is a part of the Camera interface but is not implemented for the rplidar.
+// func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
+// 	var stream gostream.VideoStream
+// 	return stream, utils.NewUnimplementedInterfaceError("Stream", nil)
+// }
 
 // Close stops the rplidar and disposes of the driver.
 func (rp *Rplidar) Close(ctx context.Context) error {
@@ -209,8 +206,8 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	ea.Yaw = yaw
 	ea.Pitch = pitch
 
-	pose1 := spatialmath.NewPose(r3.Vector{0, 0, 0}, ea)
-	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{distance, 0, 0})
+	pose1 := spatialmath.NewPose(r3.Vector{X: 0, Y: 0, Z: 0}, ea)
+	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{X: distance, Y: 0, Z: 0})
 	p := spatialmath.Compose(pose1, pose2).Point()
 
 	pos := pointcloud.NewVector(p.X*1000, p.Y*1000, p.Z*1000)
