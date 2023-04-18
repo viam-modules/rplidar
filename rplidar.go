@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.viam.com/rplidar/gen"
+
 	"go.viam.com/utils/usb"
 
 	goutils "go.viam.com/utils"
@@ -31,6 +32,7 @@ const (
 	defaultTimeout = uint(1000)
 )
 
+// Model is the model of the rplidar
 var Model = resource.NewModel("viam", "lidar", "rplidar")
 
 func init() {
@@ -207,7 +209,7 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	ea.Yaw = yaw
 	ea.Pitch = pitch
 
-	pose1 := spatialmath.NewPoseFromOrientation(r3.Vector{0, 0, 0}, ea)
+	pose1 := spatialmath.NewPose(r3.Vector{0, 0, 0}, ea)
 	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{distance, 0, 0})
 	p := spatialmath.Compose(pose1, pose2).Point()
 

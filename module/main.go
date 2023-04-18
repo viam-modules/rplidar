@@ -25,7 +25,10 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 
 	// Add the rplidar model to the module
-	rpModule.AddModelFromRegistry(ctx, camera.Subtype, rplidar.Model)
+	err = rpModule.AddModelFromRegistry(ctx, camera.Subtype, rplidar.Model)
+	if err != nil {
+		return err
+	}
 
 	// Start the module
 	err = rpModule.Start(ctx)
