@@ -9,11 +9,14 @@ import (
 
 	"go.viam.com/rplidar/gen"
 
+	"go.viam.com/rdk/rimage/transform"
+
 	"go.viam.com/utils/usb"
 
 	goutils "go.viam.com/utils"
 
 	"github.com/edaniels/golog"
+	"github.com/edaniels/gostream"
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
 	"go.viam.com/rdk/components/camera"
@@ -183,23 +186,23 @@ func (rp *Rplidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, er
 	return pc, nil
 }
 
-// // Properties is a part of the Camera interface but is not implemented for the rplidar.
-// func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
-// 	var props camera.Properties
-// 	return props, utils.NewUnimplementedInterfaceError("Properties", nil)
-// }
+// Properties is a part of the Camera interface but is not implemented for the rplidar.
+func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
+	var props camera.Properties
+	return props, errors.New("properties unimplemented")
+}
 
-// // Projector is a part of the Camera interface but is not implemented for the rplidar.
-// func (rp *Rplidar) Projector(ctx context.Context) (transform.Projector, error) {
-// 	var proj transform.Projector
-// 	return proj, utils.NewUnimplementedInterfaceError("Projector", nil)
-// }
+// Projector is a part of the Camera interface but is not implemented for the rplidar.
+func (rp *Rplidar) Projector(ctx context.Context) (transform.Projector, error) {
+	var proj transform.Projector
+	return proj, errors.New("projector unimplemented")
+}
 
-// // Stream is a part of the Camera interface but is not implemented for the rplidar.
-// func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
-// 	var stream gostream.VideoStream
-// 	return stream, utils.NewUnimplementedInterfaceError("Stream", nil)
-// }
+// Stream is a part of the Camera interface but is not implemented for the rplidar.
+func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
+	var stream gostream.VideoStream
+	return stream, errors.New("stream unimplemented")
+}
 
 // Close stops the rplidar and disposes of the driver.
 func (rp *Rplidar) Close(ctx context.Context) error {
