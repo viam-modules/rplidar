@@ -17,12 +17,33 @@ import (
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
 	"go.viam.com/rdk/components/camera"
+	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
 )
+
+type Config struct {
+	DevicePath string `flag:"device,usage=device path"`
+}
+
+// Rplidar controls an Rplidar device.
+type Rplidar struct {
+	resource.Named
+	resource.AlwaysRebuild
+	mu                      sync.Mutex
+	device                  rplidarDevice
+	nodes                   gen.Rplidar_response_measurement_node_hq_t
+	nodeSize                int
+	started                 bool
+	scannedOnce             bool
+	defaultNumScans         int
+	warmupNumDiscardedScans int
+
+	logger golog.Logger
+}
 
 const (
 	defaultTimeout = uint(1000)
@@ -33,6 +54,10 @@ var Model = resource.NewModel("viam", "lidar", "rplidar")
 
 func init() {
 	registry.RegisterComponent(camera.Subtype, Model, registry.Component{Constructor: newRplidar})
+	config.RegisterComponentAttributeMapConverter(camera.Subtype, Model,
+		func(attributes utils.AttributeMap) (interface{}, error) {
+			return config.TransformAttributeMapToStruct(&Config{}, attributes)
+		})
 }
 
 func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config, logger golog.Logger) (resource.Resource, error) {
@@ -59,22 +84,6 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	}
 	rp.start()
 	return rp, nil
-}
-
-// Rplidar controls an Rplidar device.
-type Rplidar struct {
-	resource.Named
-	resource.AlwaysRebuild
-	mu                      sync.Mutex
-	device                  rplidarDevice
-	nodes                   gen.Rplidar_response_measurement_node_hq_t
-	nodeSize                int
-	started                 bool
-	scannedOnce             bool
-	defaultNumScans         int
-	warmupNumDiscardedScans int
-
-	logger golog.Logger
 }
 
 // NextPointCloud performs a scan on the rplidar and performs some filtering to clean up the data.
