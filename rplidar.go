@@ -25,6 +25,7 @@ import (
 	"go.viam.com/rdk/utils"
 )
 
+// Config is used for converting config attributes.
 type Config struct {
 	DevicePath string `flag:"device,usage=device path"`
 }
