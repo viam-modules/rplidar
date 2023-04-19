@@ -9,8 +9,6 @@ import (
 
 	"go.viam.com/rplidar/gen"
 
-	"go.viam.com/rdk/rimage/transform"
-
 	"go.viam.com/utils/usb"
 
 	goutils "go.viam.com/utils"
@@ -23,14 +21,10 @@ import (
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/resource"
+	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
 )
-
-// Config is used for converting config attributes.
-type Config struct {
-	DevicePath string `flag:"device,usage=device path"`
-}
 
 // Rplidar controls an Rplidar device.
 type Rplidar struct {
@@ -57,10 +51,6 @@ var Model = resource.NewModel("viam", "lidar", "rplidar")
 
 func init() {
 	registry.RegisterComponent(camera.Subtype, Model, registry.Component{Constructor: newRplidar})
-	// config.RegisterComponentAttributeMapConverter(camera.Subtype, Model,
-	// 	func(attributes utils.AttributeMap) (interface{}, error) {
-	// 		return config.TransformAttributeMapToStruct(&Config{}, attributes)
-	// 	})
 }
 
 func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config, logger golog.Logger) (resource.Resource, error) {
