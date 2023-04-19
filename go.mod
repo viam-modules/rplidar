@@ -5,6 +5,7 @@ go 1.18
 require (
 	github.com/edaniels/golinters v0.0.5-0.20220906153528-641155550742
 	github.com/edaniels/golog v0.0.0-20230215213219-28954395e8d0
+	github.com/edaniels/gostream v0.0.0-20230408181022-2ee0d53bf02c
 	github.com/golang/geo v0.0.0-20210211234256-740aa86cb551
 	github.com/golangci/golangci-lint v1.51.2
 	github.com/pkg/errors v0.9.1
@@ -64,7 +65,6 @@ require (
 	github.com/desertbit/timer v0.0.0-20180107155436-c41aec40b27f // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
-	github.com/edaniels/gostream v0.0.0-20230408181022-2ee0d53bf02c // indirect
 	github.com/edaniels/lidario v0.0.0-20220607182921-5879aa7b96dd // indirect
 	github.com/edaniels/zeroconf v1.0.5 // indirect
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
@@ -303,4 +303,4 @@ require (
 	nhooyr.io/websocket v1.8.7 // indirect
 )
 
-replace go.viam.com/rdk => github.com/edaniels/rdk v0.2.8-0.20230417185438-fe6bf8c0070a
+replace go.viam.com/rdk => github.com/edaniels/rdk v0.0.0-20230419121843-b444fe8109a9

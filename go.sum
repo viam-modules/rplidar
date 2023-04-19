@@ -262,8 +262,8 @@ github.com/edaniels/gostream v0.0.0-20230408181022-2ee0d53bf02c h1:4z36z02NkV07e
 github.com/edaniels/gostream v0.0.0-20230408181022-2ee0d53bf02c/go.mod h1:9f9hi2zR9WtEfLyeQZMhn5BqMXaWca57BxEN2J2v91E=
 github.com/edaniels/lidario v0.0.0-20220607182921-5879aa7b96dd h1:W6Zlh2ja8A5vljn17Ix/gZhaUbYMFKAuBjc4t9nma7U=
 github.com/edaniels/lidario v0.0.0-20220607182921-5879aa7b96dd/go.mod h1:CibiLtefSZOd0smxazen6pzvjNK3HrvgGojYOqC3/4Q=
-github.com/edaniels/rdk v0.2.8-0.20230417185438-fe6bf8c0070a h1:97Dn5tVZu7pI0yUgbyhCha/0vMlfSHlulcNcDKlcm7g=
-github.com/edaniels/rdk v0.2.8-0.20230417185438-fe6bf8c0070a/go.mod h1:DdEc5yfkqxzQCtabMG5rNYNxB3jQMjiD1GXix5PyVIY=
+github.com/edaniels/rdk v0.0.0-20230419121843-b444fe8109a9 h1:M4evW/lzk/B/QkxYIAiR7/S8OmK3dX7m6WdctdB1x64=
+github.com/edaniels/rdk v0.0.0-20230419121843-b444fe8109a9/go.mod h1:DdEc5yfkqxzQCtabMG5rNYNxB3jQMjiD1GXix5PyVIY=
 github.com/edaniels/zeroconf v1.0.5 h1:lGhzH3z8cR5Hvv2wmf1QJyQeyBgeJdUkjNo98Y+ysOo=
 github.com/edaniels/zeroconf v1.0.5/go.mod h1:22UUi3EGu1VSKYpObTSRkMvN9ENVT20KgHJbDISznEk=
 github.com/edsrzf/mmap-go v1.0.0/go.mod h1:YO35OhQPt3KJa3ryjFM5Bs14WD66h8eGKpfaBNrHW5M=
