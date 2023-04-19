@@ -14,10 +14,11 @@ import (
 )
 
 func main() {
-	utils.ContextualMain(mainWithArgs, golog.NewLogger("rplidarModule"))
+	utils.ContextualMain(mainWithArgs, golog.NewDebugLogger("rplidarModule"))
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
+	logger.Debugf("ARGS %#v\n", args)
 	// Instantiate the module itself
 	rpModule, err := module.NewModuleFromArgs(ctx, logger)
 	if err != nil {
@@ -25,8 +26,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 	}
 
 	// Add the rplidar model to the module
-	err = rpModule.AddModelFromRegistry(ctx, camera.Subtype, rplidar.Model)
-	if err != nil {
+	if err = rpModule.AddModelFromRegistry(ctx, camera.Subtype, rplidar.Model); err != nil {
 		return err
 	}
 

@@ -20,7 +20,6 @@ import (
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
 	"go.viam.com/rdk/components/camera"
-	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/resource"
@@ -58,13 +57,14 @@ var Model = resource.NewModel("viam", "lidar", "rplidar")
 
 func init() {
 	registry.RegisterComponent(camera.Subtype, Model, registry.Component{Constructor: newRplidar})
-	config.RegisterComponentAttributeMapConverter(camera.Subtype, Model,
-		func(attributes utils.AttributeMap) (interface{}, error) {
-			return config.TransformAttributeMapToStruct(&Config{}, attributes)
-		})
+	// config.RegisterComponentAttributeMapConverter(camera.Subtype, Model,
+	// 	func(attributes utils.AttributeMap) (interface{}, error) {
+	// 		return config.TransformAttributeMapToStruct(&Config{}, attributes)
+	// 	})
 }
 
 func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config, logger golog.Logger) (resource.Resource, error) {
+	logger.Debugf("c.Attributes %#v\n", c.Attributes)
 	devicePath := c.Attributes.String("device_path")
 	if devicePath == "" {
 		var err error
