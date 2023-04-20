@@ -9,6 +9,8 @@ import (
 
 	"go.viam.com/rplidar/gen"
 
+	"go.viam.com/rdk/rimage/transform"
+
 	"go.viam.com/utils/usb"
 
 	goutils "go.viam.com/utils"
@@ -21,7 +23,6 @@ import (
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
 )
@@ -70,6 +71,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	}
 
 	rp := &Rplidar{
+		Named:                   c.ResourceName().AsNamed(),
 		device:                  rplidarDevice,
 		nodeSize:                8192,
 		logger:                  logger,
