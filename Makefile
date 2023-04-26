@@ -54,5 +54,3 @@ appimage: build-module
 
 clean-appimage:
 	rm -rf etc/packaging/appimages/AppDir && rm -rf etc/packaging/appimages/appimage-build && rm -rf etc/packaging/appimages/deploy
-
-include *.make
