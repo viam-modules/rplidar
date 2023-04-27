@@ -65,7 +65,7 @@ If desired, Viam's canon tool can be used to create a docker container to build 
 go install github.com/viamrobotics/canon@latest
 ```
 
-And then by running one of the following commands in the viam-cartographer repository to create the container:
+And then by running one of the following commands in the rplidar repository to create the container:
 
 ```bash
 canon -arch arm64
