@@ -40,9 +40,6 @@ swig: sdk
 build-module: swig
 	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build -o bin/rplidar-module module/main.go
 
-build-server: swig
-	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build -o bin/rplidar_server cmd/server/main.go
-
 clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
 

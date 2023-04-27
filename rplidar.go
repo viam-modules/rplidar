@@ -18,10 +18,7 @@ import (
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
 	"go.viam.com/rdk/components/camera"
-	"go.viam.com/rdk/components/generic"
-	"go.viam.com/rdk/config"
 	"go.viam.com/rdk/pointcloud"
-	"go.viam.com/rdk/registry"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
@@ -35,39 +32,10 @@ const (
 // Model is the model of the rplidar
 var Model = resource.NewModel("viam", "lidar", "rplidar")
 
-func init() {
-	registry.RegisterComponent(camera.Subtype, Model, registry.Component{Constructor: newRplidar})
-}
-
-func newRplidar(ctx context.Context, _ registry.Dependencies, c config.Component, logger golog.Logger) (interface{}, error) {
-	devicePath := c.Attributes.String("device_path")
-	if devicePath == "" {
-		var err error
-		if devicePath, err = searchForDevicePath(logger); err != nil {
-			return config.Component{}, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
-		}
-	}
-	logger.Info("connected to device at path " + devicePath)
-
-	rplidarDevice, err := getRplidarDevice(devicePath)
-	if err != nil {
-		return nil, err
-	}
-
-	rp := &Rplidar{
-		device:                  rplidarDevice,
-		nodeSize:                8192,
-		logger:                  logger,
-		defaultNumScans:         1,
-		warmupNumDiscardedScans: 5,
-	}
-	rp.start()
-	return rp, nil
-}
-
 // Rplidar controls an Rplidar device.
 type Rplidar struct {
-	generic.Unimplemented
+	resource.Named
+	resource.AlwaysRebuild
 	mu                      sync.Mutex
 	device                  rplidarDevice
 	nodes                   gen.Rplidar_response_measurement_node_hq_t
@@ -78,6 +46,52 @@ type Rplidar struct {
 	warmupNumDiscardedScans int
 
 	logger golog.Logger
+}
+
+// Config describes how to configure the RPlidar component.
+type Config struct {
+	DevicePath string `json:"device_path"`
+}
+
+// Validate checks that the config attributes are valid for an RPlidar.
+func (conf *Config) Validate(path string) ([]string, error) {
+	return nil, nil
+}
+
+func init() {
+	resource.RegisterComponent(camera.API, Model, resource.Registration[camera.Camera, *Config]{Constructor: newRplidar})
+}
+
+func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config, logger golog.Logger) (camera.Camera, error) {
+	svcConf, err := resource.NativeConfig[*Config](c)
+	if err != nil {
+		return nil, err
+	}
+
+	devicePath := svcConf.DevicePath
+	if devicePath == "" {
+		var err error
+		if devicePath, err = searchForDevicePath(logger); err != nil {
+			return nil, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
+		}
+	}
+	logger.Info("connected to device at path " + devicePath)
+
+	rplidarDevice, err := getRplidarDevice(devicePath)
+	if err != nil {
+		return nil, err
+	}
+
+	rp := &Rplidar{
+		Named:                   c.ResourceName().AsNamed(),
+		device:                  rplidarDevice,
+		nodeSize:                8192,
+		logger:                  logger,
+		defaultNumScans:         1,
+		warmupNumDiscardedScans: 5,
+	}
+	rp.start()
+	return rp, nil
 }
 
 // NextPointCloud performs a scan on the rplidar and performs some filtering to clean up the data.
@@ -179,19 +193,19 @@ func (rp *Rplidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, er
 // Properties is a part of the Camera interface but is not implemented for the rplidar.
 func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
 	var props camera.Properties
-	return props, utils.NewUnimplementedInterfaceError("Properties", nil)
+	return props, errors.New("properties unimplemented")
 }
 
 // Projector is a part of the Camera interface but is not implemented for the rplidar.
 func (rp *Rplidar) Projector(ctx context.Context) (transform.Projector, error) {
 	var proj transform.Projector
-	return proj, utils.NewUnimplementedInterfaceError("Projector", nil)
+	return proj, errors.New("projector unimplemented")
 }
 
 // Stream is a part of the Camera interface but is not implemented for the rplidar.
 func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
 	var stream gostream.VideoStream
-	return stream, utils.NewUnimplementedInterfaceError("Stream", nil)
+	return stream, errors.New("stream unimplemented")
 }
 
 // Close stops the rplidar and disposes of the driver.
@@ -209,8 +223,8 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	ea.Yaw = yaw
 	ea.Pitch = pitch
 
-	pose1 := spatialmath.NewPose(r3.Vector{0, 0, 0}, ea)
-	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{distance, 0, 0})
+	pose1 := spatialmath.NewPose(r3.Vector{X: 0, Y: 0, Z: 0}, ea)
+	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{X: distance, Y: 0, Z: 0})
 	p := spatialmath.Compose(pose1, pose2).Point()
 
 	pos := pointcloud.NewVector(p.X*1000, p.Y*1000, p.Z*1000)
