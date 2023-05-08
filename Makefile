@@ -2,7 +2,8 @@ OS=$(shell uname)
 VERSION=v1.12.0
 GIT_REVISION = $(shell git rev-parse HEAD | tr -d '\n')
 TAG_VERSION?=$(shell etc/tag_version.sh)
-LDFLAGSOPTS = -ldflags "-X 'main.Version=${TAG_VERSION}' -X 'main.GitRevision=${GIT_REVISION}' -L gen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
+CGO_LDFLAGS="-L 'gen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/'"
+GO_BUILD_LDFLAGS = -ldflags "-X 'main.Version=${TAG_VERSION}' -X 'main.GitRevision=${GIT_REVISION}'"
 
 default: install-swig swig
 .PHONY: default
@@ -40,7 +41,7 @@ swig: sdk
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
 
 build-module: swig
-	mkdir -p bin && go build $(LDFLAGSOPTS) -o bin/rplidar-module module/main.go
+	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build $(GO_BUILD_LDFLAGS) -o bin/rplidar-module module/main.go
 
 clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
