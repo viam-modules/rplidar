@@ -4,6 +4,8 @@ package main
 import (
 	"context"
 
+	goutils "go.viam.com/utils"
+
 	"go.viam.com/rplidar"
 
 	"github.com/edaniels/golog"
@@ -60,8 +62,7 @@ func printVersion(args []string, logger golog.Logger) Arguments {
 	// Don't propagate error if there are additional flags
 	// that are not recognized. Otherwise the module fails
 	// under normal operation.
-	//nolint:errcheck
-	_ = utils.ParseFlags(args, &argsParsed)
+	goutils.UncheckedError(utils.ParseFlags(args, &argsParsed))
 
 	// Always log the version, return early if the '-version' flag was provided
 	// fmt.Println would be better but fails linting. Good enough.

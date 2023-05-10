@@ -1,7 +1,7 @@
 OS=$(shell uname)
 VERSION=v1.12.0
 GIT_REVISION = $(shell git rev-parse HEAD | tr -d '\n')
-TAG_VERSION?=$(shell etc/tag_version.sh)
+TAG_VERSION?=$(shell git tag --points-at | sort -Vr | head -n1)
 CGO_LDFLAGS="-L 'gen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/'"
 GO_BUILD_LDFLAGS = -ldflags "-X 'main.Version=${TAG_VERSION}' -X 'main.GitRevision=${GIT_REVISION}'"
 
