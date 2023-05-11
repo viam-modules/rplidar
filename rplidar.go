@@ -227,6 +227,10 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{X: distance, Y: 0, Z: 0})
 	p := spatialmath.Compose(pose1, pose2).Point()
 
+	// Flip the point on the y axis.
+	p.X = -1 * p.X
+	p.Z = -1 * p.Z
+
 	pos := pointcloud.NewVector(p.X*1000, p.Y*1000, p.Z*1000)
 	d := pointcloud.NewBasicData()
 	d.SetIntensity(uint16(reflectivity) * 255)
