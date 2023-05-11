@@ -1,6 +1,6 @@
 service:
   # When updating this, also update bin/linters.sh accordingly
-  golangci-lint-version: 1.18.x # use the fixed version to not introduce new linters unexpectedly
+  golangci-lint-version: 1.51.x
 run:
   # timeout for analysis, e.g. 30s, 5m, default is 1m
   deadline: 600s
@@ -63,6 +63,7 @@ linters-settings:
     min-confidence: 0.3
   gofmt:
     # simplify code: gofmt with `-s` option, true by default
+    lang-version: "1.19"
     simplify: true
   goimports:
     # put imports beginning with prefix after 3rd-party packages;
