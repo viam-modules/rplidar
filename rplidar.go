@@ -227,6 +227,10 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	pose2 := spatialmath.NewPoseFromPoint(r3.Vector{X: distance, Y: 0, Z: 0})
 	p := spatialmath.Compose(pose1, pose2).Point()
 
+	// Rotate the point 180 degrees on the y axis. Since lidar data is always 2D, we don't worry
+	// about the Z value.
+	p.X = -p.X
+
 	pos := pointcloud.NewVector(p.X*1000, p.Y*1000, p.Z*1000)
 	d := pointcloud.NewBasicData()
 	d.SetIntensity(uint16(reflectivity) * 255)
