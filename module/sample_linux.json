@@ -1,19 +1,16 @@
 {
   "modules": [
-    {
-      "name": "rplidar_module",
-      "executable_path": "/usr/local/bin/rplidar-module"
-    }
+      {
+          "name": "rplidar_module",
+          "executable_path": "/usr/local/bin/rplidar-module"
+      }
   ],
   "components": [
-    {
-      "depends_on": [],
-      "name": "rplidar_test",
-      "namespace": "rdk",
-      "type": "camera",
-      "model": "viam:lidar:rplidar",
-      "attributes": {}
-    }
+      {
+          "name": "rplidar_test",
+          "namespace": "rdk",
+          "type": "camera",
+          "model": "viam:lidar:rplidar"
+      }
   ]
 }
-
