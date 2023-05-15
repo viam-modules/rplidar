@@ -7,7 +7,7 @@
     ],
     "components": [
         {
-            "name": "rplidar",
+            "name": "rplidar_test",
             "namespace": "rdk",
             "type": "camera",
             "model": "viam:lidar:rplidar",
