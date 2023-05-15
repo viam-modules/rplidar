@@ -24,7 +24,7 @@ It has been tested on the following rplidars:
       sudo curl -o /usr/local/bin/rplidar-module http://packages.viam.com/apps/rplidar/rplidar-module-latest-x86_64.AppImage
       sudo chmod a+rx /usr/local/bin/rplidar-module
       ```
-2. Run the [RDK](https://github.com/viamrobotics/rdk) web server using one of the example config files [module/sample_osx_m1.json](./module/sample_osx_m1.json), [module/sample_osx_x86.json](./module/sample_osx_x86.json) or [module/sample_linux.json](./module/sample_linux.json), depending on your operating system and prcessor. 
+2. Run the [RDK](https://github.com/viamrobotics/rdk) web server using one of the example config files [module/sample_osx_m1.json](./module/sample_osx_m1.json), [module/sample_osx_x86.json](./module/sample_osx_x86.json) or [module/sample_linux.json](./module/sample_linux.json), depending on your operating system and processor. 
 
 ## Development
 
