@@ -1,4 +1,10 @@
 {
+  "modules": [
+    {
+      "name": "rplidar_module",
+      "executable_path": "/usr/local/bin/rplidar-module"
+    }
+  ],
   "components": [
     {
       "depends_on": [],
@@ -8,13 +14,6 @@
       "model": "viam:lidar:rplidar",
       "attributes": {}
     }
-  ],
-
-  "modules": [
-    {
-      "name": "rplidar_module",
-      "executable_path": "/usr/local/bin/rplidar-module"
-    },
   ]
 }
 
