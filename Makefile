@@ -5,8 +5,7 @@ TAG_VERSION?=$(shell git tag --points-at | sort -Vr | head -n1)
 CGO_LDFLAGS="-L 'gen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/'"
 GO_BUILD_LDFLAGS = -ldflags "-X 'main.Version=${TAG_VERSION}' -X 'main.GitRevision=${GIT_REVISION}'"
 
-default: install-swig swig
-.PHONY: default
+default: build-module
 
 goformat:
 	go install golang.org/x/tools/cmd/goimports
@@ -29,13 +28,6 @@ sdk:
 
 clean-sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE) clean_sdk
-
-install-swig:
-ifeq (, $(shell brew --version 2>/dev/null))
-	sudo apt install swig -y
-else
-	brew install swig	
-endif
 
 swig: sdk
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
