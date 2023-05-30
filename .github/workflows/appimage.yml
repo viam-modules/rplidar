@@ -6,7 +6,7 @@ concurrency:
 on:
   workflow_dispatch:
   push:
-    branches: [ 'kk/fix-appimage-workflow' ]
+    branches: [ 'main' ]
     paths-ignore:
       - 'README.md'
 
