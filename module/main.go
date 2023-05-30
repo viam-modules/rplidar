@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"strings"
 
 	"go.viam.com/rplidar"
@@ -27,9 +26,6 @@ func main() {
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
 	var versionFields []interface{}
-	if len(args) != 2 {
-		return fmt.Errorf("usage: %s [socket path] start module\nor: %s --version        print version & exit", args[0], args[0])
-	}
 	if Version != "" {
 		versionFields = append(versionFields, "version", Version)
 	}
@@ -42,7 +38,7 @@ func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error
 		logger.Info(rplidar.Model.String() + " built from source; version unknown")
 	}
 
-	if strings.HasSuffix(args[1], "-version") {
+	if len(args) == 2 && strings.HasSuffix(args[1], "-version") {
 		return nil
 	}
 
