@@ -41,7 +41,6 @@ swig: sdk
 
 
 
-
 .PHONY: build-module
 build-module: swig
 	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build $(GO_BUILD_LDFLAGS) -o bin/rplidar-module module/main.go
