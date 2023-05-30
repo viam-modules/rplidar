@@ -28,12 +28,21 @@ It has been tested on the following rplidars:
 
 ## Development
 
-Run `make install-swig`.
+### Dependencies
 
-### Run rplidar as a modular component
+Install the following list of dependencies:
+
+* [Golang](https://go.dev/doc/install)
+* `make`, `swig`, `jpeg`, `pkg-config`:
+    * MacOS: `brew install make swig pkg-config jpeg`
+    * Linux: `apt update && apt install -y make swig libjpeg-dev pkg-config`
+
+### Build & run rplidar as a modular component
 
 1. Build the module: `make build-module`
-2. Run the [RDK](https://github.com/viamrobotics/rdk) web server using one of the example config files [modules/sample_osx.json](./module/sample_osx.json) or [modules/sample_linux.json](./module/sample_linux.json), depending on your operating system.
+2. Run the [RDK](https://github.com/viamrobotics/rdk) web server using one of the example config files:
+    * MacOS: [modules/sample_osx.json](./module/sample_osx.json)
+    * Linux: [modules/sample_linux.json](./module/sample_linux.json)
 
 ### Linting
 
