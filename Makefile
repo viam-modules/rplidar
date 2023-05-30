@@ -39,6 +39,9 @@ clean-sdk:
 swig: sdk
 	cd gen && swig -v -go -cgo -c++ -intgosize 64 gen.i
 
+
+
+
 .PHONY: build-module
 build-module: swig
 	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build $(GO_BUILD_LDFLAGS) -o bin/rplidar-module module/main.go
