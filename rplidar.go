@@ -37,6 +37,7 @@ type Rplidar struct {
 	resource.Named
 	resource.AlwaysRebuild
 	mu                      sync.Mutex
+	close                   bool
 	device                  rplidarDevice
 	nodes                   gen.Rplidar_response_measurement_node_hq_t
 	nodeSize                int
@@ -98,6 +99,11 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
+
+	if rp.close {
+		return nil, errors.New("resource (rplidar) is closed")
+	}
+
 	pc, err := rp.getPointCloud(ctx)
 	if err != nil {
 		return nil, err
@@ -210,6 +216,10 @@ func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHand
 
 // Close stops the rplidar and disposes of the driver.
 func (rp *Rplidar) Close(ctx context.Context) error {
+	rp.mu.Lock()
+	defer rp.mu.Unlock()
+	rp.close = true
+
 	if rp.device.driver != nil {
 		rp.stop()
 		gen.RPlidarDriverDisposeDriver(rp.device.driver)
