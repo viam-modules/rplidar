@@ -1,3 +1,4 @@
+BUILD_CHANNEL?=local
 OS=$(shell uname)
 VERSION=v1.12.0
 CGO_LDFLAGS="-Lgen/third_party/rplidar_sdk-release-${VERSION}/sdk/output/${OS}/Release/"
@@ -43,11 +44,17 @@ build-module: swig
 clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
 
-appimage: build-module
-	cd etc/packaging/appimages && appimage-builder --recipe rplidar-module-`uname -m`.yml
+appimage: build
+	cd etc/packaging/appimages && BUILD_CHANNEL=${BUILD_CHANNEL} appimage-builder --recipe cartographer-module-`uname -m`.yml
 	mkdir -p etc/packaging/appimages/deploy/
 	mv etc/packaging/appimages/*.AppImage* etc/packaging/appimages/deploy/
-	chmod a+rx etc/packaging/appimages/deploy/*.AppImage
+	chmod 755 etc/packaging/appimages/deploy/*.AppImage
+
+appimage-ci: build
+	cd etc/packaging/appimages && ./package_release_module.sh
+	mkdir -p etc/packaging/appimages/deploy/
+	mv etc/packaging/appimages/*.AppImage* etc/packaging/appimages/deploy/
+	chmod 755 etc/packaging/appimages/deploy/*.AppImage
 
 clean-appimage:
 	rm -rf etc/packaging/appimages/AppDir && rm -rf etc/packaging/appimages/appimage-build && rm -rf etc/packaging/appimages/deploy

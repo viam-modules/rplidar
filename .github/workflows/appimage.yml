@@ -37,7 +37,7 @@ jobs:
       - name: Build appimage
         run: |
           make install-swig
-          make appimage
+          make appimage-ci
 
       - name: Authorize GCP Upload
         uses: google-github-actions/auth@v1
