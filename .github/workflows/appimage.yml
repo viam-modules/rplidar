@@ -36,7 +36,7 @@ jobs:
       
       - name: Build appimage
         run: |
-          make install-swig
+          apt-get -y install swig
           make appimage-ci
 
       - name: Authorize GCP Upload
