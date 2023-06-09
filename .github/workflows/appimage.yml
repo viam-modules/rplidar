@@ -40,7 +40,8 @@ jobs:
       
       - name: Build appimage
         run: |
-          sudo -u testbot bash -lc 'apt-get -y install swig && make appimage-ci'
+          apt-get -y install swig
+          make appimage-ci
 
       - name: Authorize GCP Upload
         uses: google-github-actions/auth@v1
