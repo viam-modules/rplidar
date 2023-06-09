@@ -1,6 +1,7 @@
 BUILD_CHANNEL?=local
 
 appimage:
+    build-module
 	cd etc/packaging/appimages && BUILD_CHANNEL=${BUILD_CHANNEL} appimage-builder --recipe rplidar-module-`uname -m`.yml
 	if [ "${RELEASE_TYPE}" = "stable" ]; then \
 		cd etc/packaging/appimages; \
