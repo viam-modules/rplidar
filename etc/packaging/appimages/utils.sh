@@ -6,7 +6,8 @@
 get_stable_version_tag() {
 	set -e
 	CUR_TAG=`git tag --points-at | sort -Vr | head -n1`
-	if [[ $CUR_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+	# REMOVE WORKFLOWTEST-
+	if [[ $CUR_TAG =~ ^WORKFLOWTEST-v[0-9]+\.[0-9]+\.[0-9]+$ ]]
 	then
 		NEWEST_TAG=`git tag -l "v*.*.*" | sort -Vr | head -n1`
 		if [[ $CUR_TAG == $NEWEST_TAG ]]
@@ -24,7 +25,8 @@ get_stable_version_tag() {
 get_rc_version_tag() {
 	set -e
 	CUR_TAG=`git tag --points-at | sort -Vr | head -n1`
-	if [[ $CUR_TAG =~ ^v[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$ ]]
+	# REMOVE WORKFLOWTEST-
+	if [[ $CUR_TAG =~ ^WORKFLOWTEST-v[0-9]+\.[0-9]+\.[0-9]+-rc[0-9]+$ ]]
 	then
 		NEWEST_TAG=`git tag -l "v*.*.*" | sort -Vr | head -n1`
 		if [[ $CUR_TAG == $NEWEST_TAG ]]
