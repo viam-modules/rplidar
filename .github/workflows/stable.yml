@@ -6,8 +6,7 @@ concurrency:
 on:
   push:
     tags:
-    # REMOVE WORKFLOWTEST
-      - 'WORKFLOWTEST-v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
 # To test workflow updates you need to work in a branch directly on viamrobotics/rplidar
 # and tag your working branch instead of @main in any viamrobotics/rplidar "uses" below.
@@ -15,8 +14,7 @@ on:
 
 jobs:
   appimage:
-    # Revert to main
-    uses: viamrobotics/rplidar/.github/workflows/appimage.yml@workflowtest
+    uses: viamrobotics/rplidar/.github/workflows/appimage.yml@main
     with:
       release_type: 'stable'
     secrets:

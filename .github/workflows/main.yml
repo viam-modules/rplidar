@@ -6,8 +6,7 @@ concurrency:
 on:
   workflow_dispatch:
   push:
-    # REMOVE WORKFLOWTEST
-    branches: [ workflowtest ]
+    branches: [ main ]
     paths-ignore:
       - 'README.md'
 
@@ -17,8 +16,7 @@ on:
 
 jobs:
   appimage:
-    # REMOVE WORKFLOWTEST
-    uses: viamrobotics/rplidar/.github/workflows/appimage.yml@workflowtest
+    uses: viamrobotics/rplidar/.github/workflows/appimage.yml@main
     with:
       release_type: 'latest'
     secrets:
