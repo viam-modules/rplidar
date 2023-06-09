@@ -1,7 +1,6 @@
 BUILD_CHANNEL?=local
 
-appimage: NO_UPX=1
-appimage: server-static
+appimage:
 	cd etc/packaging/appimages && BUILD_CHANNEL=${BUILD_CHANNEL} appimage-builder --recipe rplidar-module-`uname -m`.yml
 	if [ "${RELEASE_TYPE}" = "stable" ]; then \
 		cd etc/packaging/appimages; \
@@ -22,14 +21,6 @@ appimage-arm64:
 
 appimage-deploy:
 	gsutil -m -h "Cache-Control: no-cache" cp etc/packaging/appimages/deploy/* gs://packages.viam.com/apps/rplidar-module/
-
-static-release: server-static
-	rm -rf etc/packaging/static/deploy/
-	mkdir -p etc/packaging/static/deploy/
-	cp $(BIN_OUTPUT_PATH)/rplidar-module etc/packaging/static/deploy/rplidar-module-${BUILD_CHANNEL}-`uname -m`
-	if [ "${RELEASE_TYPE}" = "stable" ]; then \
-		cp $(BIN_OUTPUT_PATH)/rplidar-module etc/packaging/static/deploy/rplidar-module-stable-`uname -m`; \
-	fi
 
 .PHONY: clean-appimage
 clean-appimage:
