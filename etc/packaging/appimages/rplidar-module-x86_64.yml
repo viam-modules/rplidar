@@ -16,7 +16,7 @@ AppDir:
     id: com.viam.rplidar-module
     name: rplidar-module
     icon: viam-server
-    version: latest
+    version: ${BUILD_CHANNEL}
     exec: usr/bin/aix
     exec_args: $@
   apt:
@@ -41,4 +41,4 @@ AppDir:
         AIX_TARGET: usr/bin/rplidar-module
 AppImage:
   arch: x86_64
-  update-information: zsync|http://packages.viam.com/apps/rplidar/rplidar-module-latest-x86_64.AppImage.zsync
+  update-information: zsync|http://packages.viam.com/apps/rplidar/rplidar-module-${BUILD_CHANNEL}-x86_64.AppImage.zsync
