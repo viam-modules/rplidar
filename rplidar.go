@@ -30,7 +30,10 @@ const (
 )
 
 // Model is the model of the rplidar
-var Model = resource.NewModel("viam", "lidar", "rplidar")
+var (
+	Model                  = resource.NewModel("viam", "lidar", "rplidar")
+	availableRplidarModels = []string{"A1", "A2", "A3", "S1"}
+)
 
 // Rplidar controls an Rplidar device.
 type Rplidar struct {
@@ -38,6 +41,7 @@ type Rplidar struct {
 	resource.AlwaysRebuild
 	mu                      sync.Mutex
 	close                   bool
+	model                   string
 	device                  rplidarDevice
 	nodes                   gen.Rplidar_response_measurement_node_hq_t
 	nodeSize                int
@@ -51,7 +55,8 @@ type Rplidar struct {
 
 // Config describes how to configure the RPlidar component.
 type Config struct {
-	DevicePath string `json:"device_path"`
+	DevicePath   string `json:"device_path"`
+	RplidarModel string `json:"rplidar_model"`
 }
 
 // Validate checks that the config attributes are valid for an RPlidar.
@@ -67,6 +72,15 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	svcConf, err := resource.NativeConfig[*Config](c)
 	if err != nil {
 		return nil, err
+	}
+
+	rplidarModel := svcConf.RplidarModel
+	if rplidarModel == "" {
+		logger.Info("No rplidar model given, setting to default of A1")
+		rplidarModel = "A1"
+	}
+	if contains(availableRplidarModels, rplidarModel) {
+		return nil, errors.Errorf("invalid rplidar model given, please choose one of the following %v", availableRplidarModels)
 	}
 
 	devicePath := svcConf.DevicePath
@@ -85,6 +99,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 	rp := &Rplidar{
 		Named:                   c.ResourceName().AsNamed(),
+		model:                   rplidarModel,
 		device:                  rplidarDevice,
 		nodeSize:                8192,
 		logger:                  logger,
@@ -117,8 +132,10 @@ func (rp *Rplidar) start() {
 	defer rp.mu.Unlock()
 
 	rp.started = true
-	rp.logger.Debug("starting motor")
-	rp.device.driver.StartMotor()
+	if rp.model != "S1" {
+		rp.logger.Debug("starting motor")
+		rp.device.driver.StartMotor()
+	}
 	rp.device.driver.StartScan(false, true)
 	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
 }
@@ -134,9 +151,12 @@ func (rp *Rplidar) stop() {
 			rp.nodes = nil
 		}()
 	}
-	rp.logger.Debug("stopping motor")
+
 	rp.device.driver.Stop()
-	rp.device.driver.StopMotor()
+	if rp.model != "S1" {
+		rp.logger.Debug("stopping motor")
+		rp.device.driver.StopMotor()
+	}
 	rp.started = false
 }
 
@@ -269,4 +289,13 @@ func searchForDevicePath(logger golog.Logger) (string, error) {
 		logger.Debug(comp)
 	}
 	return usbDevices[0].Path, nil
+}
+
+func contains(s []string, str string) bool {
+	for _, v := range s {
+		if v == str {
+			return true
+		}
+	}
+	return false
 }
