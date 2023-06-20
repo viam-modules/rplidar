@@ -23,6 +23,7 @@ import (
 	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
+	"golang.org/x/exp/slices"
 )
 
 const (
@@ -79,7 +80,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		logger.Info("No rplidar model given, setting to default of A1")
 		rplidarModel = "A1"
 	}
-	if contains(availableRplidarModels, rplidarModel) {
+	if slices.Contains(availableRplidarModels, rplidarModel) {
 		return nil, errors.Errorf("invalid rplidar model given, please choose one of the following %v", availableRplidarModels)
 	}
 
@@ -289,13 +290,4 @@ func searchForDevicePath(logger golog.Logger) (string, error) {
 		logger.Debug(comp)
 	}
 	return usbDevices[0].Path, nil
-}
-
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-	return false
 }
