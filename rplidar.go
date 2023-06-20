@@ -30,9 +30,10 @@ const (
 	defaultTimeout = uint(1000)
 )
 
-// Model is the model of the rplidar
 var (
-	Model                  = resource.NewModel("viam", "lidar", "rplidar")
+	// Model is the model of the rplidar
+	Model = resource.NewModel("viam", "lidar", "rplidar")
+	// availableRplidarModels is a list of supported rplidar models
 	availableRplidarModels = []string{"A1", "A2", "A3", "S1"}
 )
 
@@ -80,7 +81,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		logger.Info("No rplidar model given, setting to default of A1")
 		rplidarModel = "A1"
 	}
-	if slices.Contains(availableRplidarModels, rplidarModel) {
+	if !slices.Contains(availableRplidarModels, rplidarModel) {
 		return nil, errors.Errorf("invalid rplidar model given, please choose one of the following %v", availableRplidarModels)
 	}
 
@@ -143,9 +144,6 @@ func (rp *Rplidar) start() {
 
 // stop request that the rplidar stops spinning.
 func (rp *Rplidar) stop() {
-	rp.mu.Lock()
-	defer rp.mu.Unlock()
-
 	if rp.nodes != nil {
 		defer func() {
 			gen.Delete_measurementNodeHqArray(rp.nodes)
