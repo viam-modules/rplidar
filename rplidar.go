@@ -108,7 +108,11 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		defaultNumScans:         1,
 		warmupNumDiscardedScans: 5,
 	}
+
+	rp.mu.Lock()
+	defer rp.mu.Unlock()
 	rp.start()
+
 	return rp, nil
 }
 
@@ -130,9 +134,6 @@ func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, e
 
 // start requests that the rplidar starts up and starts spinning.
 func (rp *Rplidar) start() {
-	rp.mu.Lock()
-	defer rp.mu.Unlock()
-
 	rp.started = true
 	if rp.model != "S1" {
 		rp.logger.Debug("starting motor")
@@ -150,7 +151,6 @@ func (rp *Rplidar) stop() {
 			rp.nodes = nil
 		}()
 	}
-
 	rp.device.driver.Stop()
 	if rp.model != "S1" {
 		rp.logger.Debug("stopping motor")
