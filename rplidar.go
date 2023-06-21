@@ -34,7 +34,7 @@ var (
 	// Model is the model of the rplidar
 	Model = resource.NewModel("viam", "lidar", "rplidar")
 	// availableRplidarModels is a list of supported rplidar models
-	availableRplidarModels = []string{"A1", "A2", "A3", "S1"}
+	availableRplidarModels = []string{"A1", "A3", "S1"}
 )
 
 // Rplidar controls an Rplidar device.
@@ -77,10 +77,6 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	}
 
 	rplidarModel := svcConf.RplidarModel
-	if rplidarModel == "" {
-		logger.Info("No rplidar model given, setting to default of A1")
-		rplidarModel = "A1"
-	}
 	if !slices.Contains(availableRplidarModels, rplidarModel) {
 		return nil, errors.Errorf("invalid rplidar model given, please choose one of the following %v", availableRplidarModels)
 	}
@@ -111,7 +107,13 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
-	rp.start()
+	rp.started = true
+	if rp.model != "S1" {
+		rp.logger.Debug("starting motor")
+		rp.device.driver.StartMotor()
+	}
+	rp.device.driver.StartScan(false, true)
+	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
 
 	return rp, nil
 }
@@ -130,33 +132,6 @@ func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, e
 		return nil, err
 	}
 	return pc, nil
-}
-
-// start requests that the rplidar starts up and starts spinning.
-func (rp *Rplidar) start() {
-	rp.started = true
-	if rp.model != "S1" {
-		rp.logger.Debug("starting motor")
-		rp.device.driver.StartMotor()
-	}
-	rp.device.driver.StartScan(false, true)
-	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
-}
-
-// stop request that the rplidar stops spinning.
-func (rp *Rplidar) stop() {
-	if rp.nodes != nil {
-		defer func() {
-			gen.Delete_measurementNodeHqArray(rp.nodes)
-			rp.nodes = nil
-		}()
-	}
-	rp.device.driver.Stop()
-	if rp.model != "S1" {
-		rp.logger.Debug("stopping motor")
-		rp.device.driver.StopMotor()
-	}
-	rp.started = false
 }
 
 func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
@@ -195,10 +170,6 @@ func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 }
 
 func (rp *Rplidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
-	if !rp.started {
-		rp.start()
-	}
-
 	// wait and then discard scans for warmup
 	if !rp.scannedOnce {
 		rp.scannedOnce = true
@@ -240,7 +211,19 @@ func (rp *Rplidar) Close(ctx context.Context) error {
 	rp.close = true
 
 	if rp.device.driver != nil {
-		rp.stop()
+		if rp.nodes != nil {
+			defer func() {
+				gen.Delete_measurementNodeHqArray(rp.nodes)
+				rp.nodes = nil
+			}()
+		}
+		rp.device.driver.Stop()
+		if rp.model != "S1" {
+			rp.logger.Debug("stopping motor")
+			rp.device.driver.StopMotor()
+		}
+		rp.started = false
+
 		gen.RPlidarDriverDisposeDriver(rp.device.driver)
 		rp.device.driver = nil
 	}
