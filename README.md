@@ -5,6 +5,7 @@ This repo integrates slamtec rplidar LIDARS within Viam's [RDK](https://github.c
 It has been tested on the following rplidars:
 * [RPLIDAR A1](https://www.slamtec.com/en/Lidar/A1)
 * [RPLIDAR A3](https://www.slamtec.com/en/Lidar/A3)
+* [RPLIDAR S1](https://www.slamtec.com/en/Lidar/S1)
 
 
 ## Getting started
