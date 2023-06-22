@@ -23,7 +23,6 @@ import (
 	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
-	"golang.org/x/exp/slices"
 )
 
 const (
@@ -33,8 +32,8 @@ const (
 var (
 	// Model is the model of the rplidar
 	Model = resource.NewModel("viam", "lidar", "rplidar")
-	// availableRplidarModels is a list of supported rplidar models
-	availableRplidarModels = []string{"A1", "A3", "S1"}
+	// rplidarModelByteMap maps the byte model representation to a string representation
+	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
 )
 
 // Rplidar controls an Rplidar device.
@@ -43,7 +42,6 @@ type Rplidar struct {
 	resource.AlwaysRebuild
 	mu                      sync.Mutex
 	close                   bool
-	model                   string
 	device                  rplidarDevice
 	nodes                   gen.Rplidar_response_measurement_node_hq_t
 	nodeSize                int
@@ -57,8 +55,7 @@ type Rplidar struct {
 
 // Config describes how to configure the RPlidar component.
 type Config struct {
-	DevicePath   string `json:"device_path"`
-	RplidarModel string `json:"rplidar_model"`
+	DevicePath string `json:"device_path"`
 }
 
 // Validate checks that the config attributes are valid for an RPlidar.
@@ -76,11 +73,6 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		return nil, err
 	}
 
-	rplidarModel := svcConf.RplidarModel
-	if !slices.Contains(availableRplidarModels, rplidarModel) {
-		return nil, errors.Errorf("invalid rplidar model given, please choose one of the following %v", availableRplidarModels)
-	}
-
 	devicePath := svcConf.DevicePath
 	if devicePath == "" {
 		var err error
@@ -88,16 +80,17 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 			return nil, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
 		}
 	}
-	logger.Info("connected to device at path " + devicePath)
+	logger.Info("attempting to connect to device at path " + devicePath)
 
 	rplidarDevice, err := getRplidarDevice(devicePath)
 	if err != nil {
 		return nil, err
 	}
 
+	logger.Info("found and connected to an " + rplidarModelByteMap[rplidarDevice.model] + " rplidar")
+
 	rp := &Rplidar{
 		Named:                   c.ResourceName().AsNamed(),
-		model:                   rplidarModel,
 		device:                  rplidarDevice,
 		nodeSize:                8192,
 		logger:                  logger,
@@ -108,7 +101,9 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
 	rp.started = true
-	if rp.model != "S1" {
+
+	// S1 rplidars do not require the motor to be started before scanning can begin
+	if rplidarModelByteMap[rp.device.model] != "S1" {
 		rp.logger.Debug("starting motor")
 		rp.device.driver.StartMotor()
 	}
@@ -222,7 +217,8 @@ func (rp *Rplidar) Close(ctx context.Context) error {
 			}()
 		}
 		rp.device.driver.Stop()
-		if rp.model != "S1" {
+		// S1 rplidars do not require the motor to be stopped during closeout
+		if rplidarModelByteMap[rp.device.model] != "S1" {
 			rp.logger.Debug("stopping motor")
 			rp.device.driver.StopMotor()
 		}
