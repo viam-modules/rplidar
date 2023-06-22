@@ -123,7 +123,7 @@ func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, e
 	}
 
 	if !rp.started {
-		return nil, errors.New("resource (rplidar) failed to start upon initialization")
+		return nil, errors.New("resource (rplidar) failed to initialize properly")
 	}
 
 	pc, err := rp.getPointCloud(ctx)
