@@ -3,7 +3,6 @@ package main
 
 import (
 	"context"
-	"os"
 	"strings"
 
 	"go.viam.com/rplidar"
@@ -22,14 +21,7 @@ var (
 )
 
 func main() {
-	utils.ContextualMain(mainWithArgs, NewLoggerFromArgs("rplidarModule"))
-}
-
-func NewLoggerFromArgs(moduleName string) golog.Logger {
-	if len(os.Args) >= 3 && os.Args[2] == "--log-level=debug" {
-		return golog.NewDebugLogger(moduleName)
-	}
-	return golog.NewDevelopmentLogger(moduleName)
+	utils.ContextualMain(mainWithArgs, module.NewLoggerFromArgs("rplidarModule"))
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
