@@ -14,9 +14,9 @@ import (
 	goutils "go.viam.com/utils"
 
 	"github.com/edaniels/golog"
-	"github.com/edaniels/gostream"
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
+	"github.com/viamrobotics/gostream"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/resource"
