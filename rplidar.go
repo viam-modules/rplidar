@@ -14,9 +14,9 @@ import (
 	goutils "go.viam.com/utils"
 
 	"github.com/edaniels/golog"
-	"github.com/edaniels/gostream"
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
+	"github.com/viamrobotics/gostream"
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/resource"
@@ -29,8 +29,12 @@ const (
 	defaultTimeout = uint(1000)
 )
 
-// Model is the model of the rplidar
-var Model = resource.NewModel("viam", "lidar", "rplidar")
+var (
+	// Model is the model of the rplidar
+	Model = resource.NewModel("viam", "lidar", "rplidar")
+	// rplidarModelByteMap maps the byte model representation to a string representation
+	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
+)
 
 // Rplidar controls an Rplidar device.
 type Rplidar struct {
@@ -76,12 +80,14 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 			return nil, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
 		}
 	}
-	logger.Info("connected to device at path " + devicePath)
+	logger.Info("attempting to connect to device at path " + devicePath)
 
 	rplidarDevice, err := getRplidarDevice(devicePath)
 	if err != nil {
 		return nil, err
 	}
+
+	logger.Info("found and connected to an " + rplidarModelByteMap[rplidarDevice.model] + " rplidar")
 
 	rp := &Rplidar{
 		Named:                   c.ResourceName().AsNamed(),
@@ -91,7 +97,19 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		defaultNumScans:         1,
 		warmupNumDiscardedScans: 5,
 	}
-	rp.start()
+
+	rp.mu.Lock()
+	defer rp.mu.Unlock()
+	rp.started = true
+
+	// S1 rplidars do not require the motor to be started before scanning can begin
+	if rplidarModelByteMap[rp.device.model] != "S1" {
+		rp.logger.Debug("starting motor")
+		rp.device.driver.StartMotor()
+	}
+	rp.device.driver.StartScan(false, true)
+	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
+
 	return rp, nil
 }
 
@@ -104,40 +122,15 @@ func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, e
 		return nil, errors.New("resource (rplidar) is closed")
 	}
 
+	if !rp.started {
+		return nil, errors.New("resource (rplidar) failed to initialize properly")
+	}
+
 	pc, err := rp.getPointCloud(ctx)
 	if err != nil {
 		return nil, err
 	}
 	return pc, nil
-}
-
-// start requests that the rplidar starts up and starts spinning.
-func (rp *Rplidar) start() {
-	rp.mu.Lock()
-	defer rp.mu.Unlock()
-
-	rp.started = true
-	rp.logger.Debug("starting motor")
-	rp.device.driver.StartMotor()
-	rp.device.driver.StartScan(false, true)
-	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
-}
-
-// stop request that the rplidar stops spinning.
-func (rp *Rplidar) stop() {
-	rp.mu.Lock()
-	defer rp.mu.Unlock()
-
-	if rp.nodes != nil {
-		defer func() {
-			gen.Delete_measurementNodeHqArray(rp.nodes)
-			rp.nodes = nil
-		}()
-	}
-	rp.logger.Debug("stopping motor")
-	rp.device.driver.Stop()
-	rp.device.driver.StopMotor()
-	rp.started = false
 }
 
 func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
@@ -176,10 +169,6 @@ func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 }
 
 func (rp *Rplidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
-	if !rp.started {
-		rp.start()
-	}
-
 	// wait and then discard scans for warmup
 	if !rp.scannedOnce {
 		rp.scannedOnce = true
@@ -221,7 +210,20 @@ func (rp *Rplidar) Close(ctx context.Context) error {
 	rp.close = true
 
 	if rp.device.driver != nil {
-		rp.stop()
+		if rp.nodes != nil {
+			defer func() {
+				gen.Delete_measurementNodeHqArray(rp.nodes)
+				rp.nodes = nil
+			}()
+		}
+		rp.device.driver.Stop()
+		// S1 rplidars do not require the motor to be stopped during closeout
+		if rplidarModelByteMap[rp.device.model] != "S1" {
+			rp.logger.Debug("stopping motor")
+			rp.device.driver.StopMotor()
+		}
+		rp.started = false
+
 		gen.RPlidarDriverDisposeDriver(rp.device.driver)
 		rp.device.driver = nil
 	}

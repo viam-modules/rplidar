@@ -29,7 +29,7 @@ func getRplidarDevice(devicePath string) (rplidarDevice, error) {
 			if r == ResultOpTimeout {
 				continue
 			}
-			connectErr = fmt.Errorf("failed to connect: %w", Result(result).Failed())
+			connectErr = fmt.Errorf("failed to connect: %w, try checking your defined device_path", Result(result).Failed())
 			continue
 		}
 

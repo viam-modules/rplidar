@@ -1,3 +1,4 @@
+BUILD_CHANNEL?=local
 OS=$(shell uname)
 VERSION=v1.12.0
 GIT_REVISION = $(shell git rev-parse HEAD | tr -d '\n')
@@ -47,13 +48,4 @@ build-module: swig
 clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
 
-.PHONY: appimage
-appimage: build-module
-	cd etc/packaging/appimages && appimage-builder --recipe rplidar-module-`uname -m`.yml
-	mkdir -p etc/packaging/appimages/deploy/
-	mv etc/packaging/appimages/*.AppImage* etc/packaging/appimages/deploy/
-	chmod a+rx etc/packaging/appimages/deploy/*.AppImage
-
-.PHONY: clean-appimage
-clean-appimage:
-	rm -rf etc/packaging/appimages/AppDir && rm -rf etc/packaging/appimages/appimage-build && rm -rf etc/packaging/appimages/deploy
+include *.make

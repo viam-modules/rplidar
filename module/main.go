@@ -21,7 +21,7 @@ var (
 )
 
 func main() {
-	utils.ContextualMain(mainWithArgs, golog.NewLogger("rplidarModule"))
+	utils.ContextualMain(mainWithArgs, module.NewLoggerFromArgs("rplidarModule"))
 }
 
 func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
