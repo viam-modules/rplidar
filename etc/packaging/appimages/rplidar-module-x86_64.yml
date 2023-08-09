@@ -32,6 +32,7 @@ AppDir:
     - libstdc++6:amd64
     - libc6:amd64
     - libgcc-s1
+    - libjpeg-dev:amd64
   files:
     include: []
     exclude:
