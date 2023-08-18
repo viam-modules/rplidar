@@ -185,10 +185,12 @@ func (rp *Rplidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, er
 	return pc, nil
 }
 
-// Properties is a part of the Camera interface but is not implemented for the rplidar.
+// Properties returns information regarding the output of a camera, in this case that it returns PCDs.
 func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
-	var props camera.Properties
-	return props, errors.New("properties unimplemented")
+	props := camera.Properties{
+		SupportsPCD: true,
+	}
+	return props, nil
 }
 
 // Projector is a part of the Camera interface but is not implemented for the rplidar.
