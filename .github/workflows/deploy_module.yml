@@ -49,7 +49,7 @@ jobs:
 
     - name: Bundle module
       run: |
-        cp packaging/appimages/deploy/rplidar-module-*.AppImage rplidar-module.AppImage
+        cp etc/packaging/appimages/deploy/rplidar-module-*.AppImage rplidar-module.AppImage
         tar czf module.tar.gz rplidar-module.AppImage
 
     - uses: viamrobotics/upload-module@main
