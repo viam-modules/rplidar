@@ -1,0 +1,61 @@
+name: Build AppImage RPLiDAR
+
+concurrency: 
+  group: ${{ github.workflow }}-${{ github.ref }}
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - '*'
+
+
+jobs:
+  appimage:
+    name: AppImage Build RPLiDAR
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: [ubuntu-latest]
+            image: ghcr.io/viamrobotics/canon:amd64-cache
+            platform: linux/amd64
+          - arch: [buildjet-2vcpu-ubuntu-2204-arm]
+            image: ghcr.io/viamrobotics/canon:arm64-cache
+            platform: linux/arm64
+    runs-on: ${{ matrix.arch }}
+    container:
+      image: ${{ matrix.image }}
+      options: --platform ${{ matrix.platform }}
+    timeout-minutes: 15
+    outputs:
+      date: ${{ steps.build_date.outputs.date }}
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+
+    - name: Clean and fix Pprmissions
+      run: |
+        chown testbot:testbot -R .
+        sudo -Hu testbot bash -lc 'make clean'
+
+    - name: Build appimage
+      run: |
+        apt-get -y install swig 
+        sudo -Hu testbot bash -lc 'make BUILD_CHANNEL="${{ github.ref_name }}" appimage'
+
+    - name: Bundle module
+      run: |
+        cp packaging/appimages/deploy/rplidar-module-local-*.AppImage rplidar-module.AppImage
+        tar czf module.tar.gz rplidar-module.AppImage
+
+    - uses: viamrobotics/upload-module@main
+      with:
+        module-path: module.tar.gz
+        platform: ${{ matrix.arch }}
+        version: ${{ github.ref_name }}
+        key-id: ${{ secrets.viam_key_id }}
+        key-value: ${{ secrets.viam_key_value }}
