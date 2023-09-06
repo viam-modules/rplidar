@@ -47,7 +47,7 @@ jobs:
     - name: Build appimage
       run: |
         apt-get -y install swig 
-        sudo -Hu testbot bash -lc 'make BUILD_CHANNEL="${{ github.ref_name }}" appimage'
+        sudo -Hu testbot bash -lc 'make BUILD_CHANNEL="${{ env.VERSION }}" appimage'
 
     - name: Bundle module
       run: |
@@ -58,6 +58,6 @@ jobs:
       with:
         module-path: module.tar.gz
         platform: ${{ matrix.platform }}
-        version: ${{ github.ref_name }}
+        version: ${{ env.VERSION }}
         key-id: ${{ secrets.viam_key_id }}
         key-value: ${{ secrets.viam_key_value }}
