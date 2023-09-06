@@ -1,0 +1,13 @@
+{
+  "module_id": "viam:rplidar",
+  "visibility": "public",
+  "url": "https://github.com/viamrobotics/rplidar",
+  "description": "Go module for RPLIDAR",
+  "models": [
+    {
+      "api": "rdk:component:camera",
+      "model": "viam:lidar:rplidar"
+    }
+  ],
+  "entrypoint": "rplidar-module.AppImage"
+}
