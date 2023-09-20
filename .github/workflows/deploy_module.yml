@@ -7,10 +7,8 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - 'v?[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
-env:
-  VERSION: ${{ github.event_name == 'release' && github.ref_name || format('0.0.0-{0}.{1}', github.ref_name, github.run_number) }}
 
 jobs:
   appimage:
@@ -47,17 +45,17 @@ jobs:
     - name: Build appimage
       run: |
         apt-get -y install swig 
-        sudo -Hu testbot bash -lc 'make BUILD_CHANNEL="${{ env.VERSION }}" appimage'
+        sudo -Hu testbot bash -lc 'make BUILD_CHANNEL="${{ github.ref_name }}" appimage'
 
     - name: Bundle module
       run: |
-        cp etc/packaging/appimages/deploy/rplidar-module-*.AppImage rplidar-module.AppImage
+        cp packaging/appimages/deploy/rplidar-module-*.AppImage rplidar-module.AppImage
         tar czf module.tar.gz rplidar-module.AppImage
 
     - uses: viamrobotics/upload-module@main
       with:
         module-path: module.tar.gz
-        platform: ${{ matrix.platform }}
-        version: ${{ env.VERSION }}
+        platform: ${{ matrix.arch }}
+        version: ${{ github.ref_name }}
         key-id: ${{ secrets.viam_key_id }}
         key-value: ${{ secrets.viam_key_value }}
