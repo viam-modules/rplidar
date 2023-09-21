@@ -14,15 +14,15 @@ env:
 
 jobs:
   deploy_module:
-    name: AppImage Build RPLiDAR
+    name: Deploy Module of RPLiDAR
     strategy:
       fail-fast: false
       matrix:
         include:
-          - arch: [x64, linux, self-hosted]
+          - arch: [ubuntu-latest]
             image: ghcr.io/viamrobotics/canon:amd64-cache
             platform: linux/amd64
-          - arch: [arm64, linux, self-hosted]
+          - arch: [buildjet-2vcpu-ubuntu-2204-arm]
             image: ghcr.io/viamrobotics/canon:arm64-cache
             platform: linux/arm64
     runs-on: ${{ matrix.arch }}
