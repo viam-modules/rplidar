@@ -19,7 +19,7 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - arch: [ubuntu-latest]
+          - arch: [buildjet-8vcpu-ubuntu-2204]
             image: ghcr.io/viamrobotics/canon:amd64-cache
             platform: linux/amd64
           - arch: [buildjet-2vcpu-ubuntu-2204-arm]
