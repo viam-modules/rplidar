@@ -13,7 +13,7 @@ env:
   VERSION: ${{ github.ref_name }}
 
 jobs:
-  deploy_module:
+  appimage:
     name: Deploy Module of RPLiDAR
     strategy:
       fail-fast: false
@@ -54,14 +54,28 @@ jobs:
         cp etc/packaging/appimages/deploy/rplidar-module-*.AppImage rplidar-module.AppImage
         tar czf module.tar.gz rplidar-module.AppImage
 
+    - uses: actions/upload-artifact@v3
+      with:
+        name: appimage-${{ matrix.platform }}
+        path: module.tar.gz
+  
+  upload:
+    needs: appimage
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        platform: [amd64, arm64]
+    steps:
+    - uses: actions/download-artifact@v3
+      with:
+        name: appimage-${{ matrix.platform }}
     - id: stripped-version
       run: echo version=${VERSION#v} >> $GITHUB_OUTPUT
-
     - uses: viamrobotics/upload-module@main
       if: github.event_name == 'release'
       with:
-        module-path: module.tar.gz
-        platform: ${{ matrix.platform }}
+        platform: linux/${{ matrix.platform }}
         version: ${{ steps.stripped-version.outputs.version }}
         key-id: ${{ secrets.viam_key_id }}
         key-value: ${{ secrets.viam_key_value }}
+  
