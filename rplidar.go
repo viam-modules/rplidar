@@ -107,6 +107,8 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		minRangeMM:              svcConf.MinRangeMM,
 	}
 
+	fmt.Println("svcConf.MinRangeMM: ", svcConf.MinRangeMM)
+
 	rp.mu.Lock()
 	defer rp.mu.Unlock()
 	rp.started = true
@@ -167,6 +169,7 @@ func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 
 			// Filter out points below minRange
 			if nodeDistance < rp.minRangeMM {
+				fmt.Println("SKIPPING POINT")
 				continue
 			}
 
