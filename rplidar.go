@@ -50,7 +50,7 @@ type Rplidar struct {
 	defaultNumScans         int
 	warmupNumDiscardedScans int
 
-	minRange float64
+	minRangeMM float64
 
 	logger golog.Logger
 }
@@ -58,13 +58,13 @@ type Rplidar struct {
 // Config describes how to configure the RPlidar component.
 type Config struct {
 	DevicePath string  `json:"device_path"`
-	MinRange   float64 `json:"min_range"`
+	MinRangeMM float64 `json:"min_range_mm"`
 }
 
 // Validate checks that the config attributes are valid for an RPlidar.
 func (conf *Config) Validate(path string) ([]string, error) {
 
-	if conf.MinRange < 0 {
+	if conf.MinRangeMM < 0 {
 		return nil, errors.New("min_range must be positive")
 	}
 
@@ -104,7 +104,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		logger:                  logger,
 		defaultNumScans:         1,
 		warmupNumDiscardedScans: 5,
-		minRange:                svcConf.MinRange,
+		minRangeMM:              svcConf.MinRangeMM,
 	}
 
 	rp.mu.Lock()
@@ -166,7 +166,7 @@ func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 			nodeDistance := float64(node.GetDist_mm_q2()) / 4
 
 			// Filter out points below minRange
-			if rp.minRange != 0 && nodeDistance < rp.minRange {
+			if nodeDistance < rp.minRangeMM {
 				continue
 			}
 
