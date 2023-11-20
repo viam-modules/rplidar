@@ -13,11 +13,11 @@ import (
 
 	goutils "go.viam.com/utils"
 
-	"github.com/edaniels/golog"
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
-	"github.com/viamrobotics/gostream"
 	"go.viam.com/rdk/components/camera"
+	"go.viam.com/rdk/gostream"
+	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/resource"
 	"go.viam.com/rdk/rimage/transform"
@@ -52,7 +52,7 @@ type Rplidar struct {
 
 	minRangeMM float64
 
-	logger golog.Logger
+	logger logging.Logger
 }
 
 // Config describes how to configure the RPlidar component.
@@ -75,7 +75,7 @@ func init() {
 	resource.RegisterComponent(camera.API, Model, resource.Registration[camera.Camera, *Config]{Constructor: newRplidar})
 }
 
-func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config, logger golog.Logger) (camera.Camera, error) {
+func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config, logger logging.Logger) (camera.Camera, error) {
 	svcConf, err := resource.NativeConfig[*Config](c)
 	if err != nil {
 		return nil, err
@@ -140,6 +140,11 @@ func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, e
 		return nil, err
 	}
 	return pc, nil
+}
+
+// Images is a part of the camera interface but is not implemented for the rplidar.
+func (rp *Rplidar) Images(ctx context.Context) ([]camera.NamedImage, resource.ResponseMetadata, error) {
+	return nil, resource.ResponseMetadata{}, errors.New("`Images` is unimplemented")
 }
 
 func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
@@ -266,7 +271,7 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	return pos, d
 }
 
-func searchForDevicePath(logger golog.Logger) (string, error) {
+func searchForDevicePath(logger logging.Logger) (string, error) {
 	var usbInfo = &usb.Identifier{
 		Vendor:  0x10c4,
 		Product: 0xea60,

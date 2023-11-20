@@ -7,8 +7,8 @@ import (
 
 	"go.viam.com/rplidar"
 
-	"github.com/edaniels/golog"
 	"go.viam.com/rdk/components/camera"
+	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/module"
 
 	"go.viam.com/utils"
@@ -24,7 +24,7 @@ func main() {
 	utils.ContextualMain(mainWithArgs, module.NewLoggerFromArgs("rplidarModule"))
 }
 
-func mainWithArgs(ctx context.Context, args []string, logger golog.Logger) error {
+func mainWithArgs(ctx context.Context, args []string, logger logging.Logger) error {
 	var versionFields []interface{}
 	if Version != "" {
 		versionFields = append(versionFields, "version", Version)
