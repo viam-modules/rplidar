@@ -144,7 +144,7 @@ func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, e
 
 // Images is a part of the camera interface but is not implemented for the rplidar.
 func (rp *Rplidar) Images(ctx context.Context) ([]camera.NamedImage, resource.ResponseMetadata, error) {
-	return nil, resource.ResponseMetadata{}, errors.New("`Images` is unimplemented")
+	return nil, resource.ResponseMetadata{}, errors.New("images unimplemented")
 }
 
 func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
