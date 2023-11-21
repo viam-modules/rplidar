@@ -187,7 +187,7 @@ func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 	var dropCount int
 	nodeCount := int64(defaultNodeSize)
 	for i := 0; i < numScans; i++ {
-		result := rp.device.driver.GrabScanDataHq(rp.nodes, &nodeCount, defaultTimeout)
+		result := rp.device.driver.GrabScanDataHq(rp.nodes, &nodeCount, defaultTimeoutMs)
 		if Result(result) != ResultOk {
 			return nil, fmt.Errorf("bad scan: %w", Result(result).Failed())
 		}
