@@ -26,7 +26,14 @@ import (
 )
 
 const (
-	defaultTimeout = uint(1000)
+	// The max time in milliseconds it should take for the rplidar to get scan data.
+	defaultTimeoutMs = uint(1000)
+	// The number of full 360 scans to complete before returning a point cloud.
+	defaultNumScans = 1
+	// The number of scans to discard at startup to ensure valid data is returned to the user.
+	defaultWarmupNumDiscardedScans = 5
+	// The number of max data points returned in each scan
+	defaultNodeSize = 8192
 )
 
 var (
@@ -34,9 +41,6 @@ var (
 	Model = resource.NewModel("viam", "lidar", "rplidar")
 	// rplidarModelByteMap maps the byte model representation to a string representation
 	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
-
-	defaultNumScans         = 1
-	warmupNumDiscardedScans = 5
 )
 
 // Rplidar controls an Rplidar device.
@@ -47,7 +51,6 @@ type Rplidar struct {
 	deviceMutex *sync.Mutex
 	device      rplidarDevice
 	nodes       gen.Rplidar_response_measurement_node_hq_t
-	nodeSize    int
 	minRangeMM  float64
 
 	cancelFunc       func()
@@ -103,7 +106,6 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	rp := &Rplidar{
 		Named:      c.ResourceName().AsNamed(),
 		device:     rplidarDevice,
-		nodeSize:   8192,
 		minRangeMM: svcConf.MinRangeMM,
 
 		deviceMutex:            &sync.Mutex{},
@@ -143,10 +145,10 @@ func (rp *Rplidar) setupRPLidar(ctx context.Context) error {
 
 	// Setup rplidar scan and scan once as per warmup procedure
 	rp.device.driver.StartScan(false, true)
-	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
+	rp.nodes = gen.New_measurementNodeHqArray(defaultNodeSize)
 
-	goutils.SelectContextOrWait(ctx, time.Duration(warmupNumDiscardedScans)*time.Second)
-	if _, err := rp.scan(ctx, warmupNumDiscardedScans); err != nil {
+	goutils.SelectContextOrWait(ctx, time.Duration(defaultWarmupNumDiscardedScans)*time.Second)
+	if _, err := rp.scan(ctx, defaultWarmupNumDiscardedScans); err != nil {
 		return err
 	}
 
@@ -181,11 +183,10 @@ func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 	defer rp.deviceMutex.Unlock()
 
 	pc := pointcloud.New()
-	nodeCount := int64(rp.nodeSize)
 
 	var dropCount int
+	nodeCount := int64(defaultNodeSize)
 	for i := 0; i < numScans; i++ {
-		nodeCount = int64(rp.nodeSize)
 		result := rp.device.driver.GrabScanDataHq(rp.nodes, &nodeCount, defaultTimeout)
 		if Result(result) != ResultOk {
 			return nil, fmt.Errorf("bad scan: %w", Result(result).Failed())
