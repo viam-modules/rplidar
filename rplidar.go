@@ -9,8 +9,6 @@ import (
 
 	"go.viam.com/rplidar/gen"
 
-	"go.viam.com/utils/usb"
-
 	goutils "go.viam.com/utils"
 
 	"github.com/golang/geo/r3"
@@ -311,27 +309,4 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	d.SetIntensity(uint16(reflectivity) * 255)
 
 	return pos, d
-}
-
-func searchForDevicePath(logger logging.Logger) (string, error) {
-	var usbInfo = &usb.Identifier{
-		Vendor:  0x10c4,
-		Product: 0xea60,
-	}
-
-	usbDevices := usb.Search(
-		usb.SearchFilter{},
-		func(vendorID, productID int) bool {
-			return vendorID == usbInfo.Vendor && productID == usbInfo.Product
-		})
-
-	if len(usbDevices) == 0 {
-		return "", errors.New("no usb devices found")
-	}
-
-	logger.Debugf("detected %d lidar devices", len(usbDevices))
-	for _, comp := range usbDevices {
-		logger.Debug(comp)
-	}
-	return usbDevices[0].Path, nil
 }
