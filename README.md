@@ -1,17 +1,31 @@
 
-# rplidar
-This repo integrates slamtec rplidar LIDARS within Viam's [RDK](https://github.com/viamrobotics/rdk).
+# Rplidar Camera
+This repo integrates slamtec rplidar LIDARS to be configured as a [camera](https://docs.viam.com/components/camera/) with Viam's [RDK](https://github.com/viamrobotics/rdk).
 
 It has been tested on the following rplidars:
 * [RPLIDAR A1](https://www.slamtec.com/en/Lidar/A1)
 * [RPLIDAR A3](https://www.slamtec.com/en/Lidar/A3)
 * [RPLIDAR S1](http://bucket.download.slamtec.com/f19ea8efcc2bb55dbfd5839f1d307e34aa4a6ca0/LD601_SLAMTEC_rplidar_datasheet_S1_v1.4_en.pdf)
 
-## User documentation
+## Build and Run
 
-For user documentation, see [Add an RPlidar as a Modular Resource](https://docs.viam.com/extend/modular-resources/examples/rplidar/).
+To use this module, follow these instructions to [add a module from the Viam Registry](https://docs.viam.com/modular-resources/configure/#add-a-module-from-the-viam-registry) and select the `viam:lidar:rplidar` model from the [`rplidar` module](https://app.viam.com/module/viam/rplidar).
 
-## Getting started
+## Configure your Rplidar
+
+> [!NOTE]  
+> Before configuring your camera, you must [create a robot](https://docs.viam.com/manage/fleet/robots/#add-a-new-robot).
+
+Navigate to the **Config** tab of your robot’s page in [the Viam app](https://app.viam.com/). Click on the **Components** subtab and click **Create component**. Select the `camera` type, then select the `lidar:rplidar` model. Enter a name for your camera and click **Create**.
+
+> [!NOTE]  
+> For more information, see [Configure a Robot](https://docs.viam.com/manage/configuration/).
+
+### Attributes
+
+No attributes are available for a `lidar:rplidar` camera.
+
+## Local installation
 
 1. Install the rplidar module:
    * OSx: 
