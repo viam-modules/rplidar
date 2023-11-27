@@ -121,7 +121,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	cancelCtx, cancelFunc := context.WithCancel(context.Background())
 	rp.cancelFunc = cancelFunc
 
-	// Start background caching process
+	// Start background caching of pointcloud data
 	rp.cacheBackgroundWorkers.Add(1)
 	go func() {
 		defer rp.cacheBackgroundWorkers.Done()
@@ -154,8 +154,7 @@ func (rp *Rplidar) setupRPLidar(ctx context.Context) error {
 }
 
 // cachePointCloudLoop is a background process that repeatedly gets point cloud data from the rplidar
-// and caches it for later access. This will reduce delays in returning data and prevent overcrowding
-// of the rplidar's serial line.
+// and caches it for later access.
 func (rp *Rplidar) cachePointCloudLoop(ctx context.Context) {
 	for {
 		select {
@@ -174,8 +173,7 @@ func (rp *Rplidar) cachePointCloudLoop(ctx context.Context) {
 	}
 }
 
-// scan uses the serial connection to the rplidar to get data and creates a pointcloud from the
-// returned distances and angles
+// scan uses the serial connection to the rplidar to get data and create a pointcloud from it
 func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
 	rp.deviceMutex.Lock()
 	defer rp.deviceMutex.Unlock()
@@ -218,8 +216,8 @@ func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 	return pc, nil
 }
 
-// NextPointCloud returns the current cached point cloud. If a user requests point cloud data faster than what
-// the rplidar can manage, the same point cloud as before will be returned.
+// NextPointCloud returns the current cached point cloud. If no pointcloud has been added to the cache at the
+// point this call is made, it will return an error
 func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
 	rp.cacheMutex.RLock()
 	defer rp.cacheMutex.RUnlock()
@@ -283,7 +281,6 @@ func (rp *Rplidar) Close(ctx context.Context) error {
 		gen.RPlidarDriverDisposeDriver(rp.device.driver)
 		rp.device.driver = nil
 	}
-
 	return nil
 }
 
