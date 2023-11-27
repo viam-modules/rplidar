@@ -214,14 +214,12 @@ func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
 
 // Projector is a part of the Camera interface but is not implemented for the rplidar.
 func (rp *Rplidar) Projector(ctx context.Context) (transform.Projector, error) {
-	var proj transform.Projector
-	return proj, errors.New("projector unimplemented")
+	return nil, errors.New("projector unimplemented")
 }
 
 // Stream is a part of the Camera interface but is not implemented for the rplidar.
 func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
-	var stream gostream.VideoStream
-	return stream, errors.New("stream unimplemented")
+	return nil, errors.New("stream unimplemented")
 }
 
 // Close stops the rplidar and disposes of the driver.
