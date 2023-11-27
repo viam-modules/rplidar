@@ -60,6 +60,10 @@ swig: sdk
 build-module: swig
 	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build $(GO_BUILD_LDFLAGS) -o bin/rplidar-module module/main.go
 
+.PHONY: install
+install:
+	sudo cp bin/rplidar-module /usr/local/bin/rplidar-module
+
 .PHONY: clean
 clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go

@@ -55,7 +55,7 @@ type Rplidar struct {
 	cacheMutex       *sync.RWMutex
 	cachedPointCloud pointcloud.PointCloud
 
-	cacheBackgroundWorkers sync.WaitGroup
+	cacheBackgroundWorkers *sync.WaitGroup
 	logger                 logging.Logger
 }
 
@@ -108,7 +108,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 		deviceMutex:            &sync.Mutex{},
 		cacheMutex:             &sync.RWMutex{},
-		cacheBackgroundWorkers: sync.WaitGroup{},
+		cacheBackgroundWorkers: &sync.WaitGroup{},
 
 		logger: logger,
 	}
@@ -118,7 +118,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		return nil, errors.Wrap(err, "there was a problem setting up the rplidar")
 	}
 
-	cancelCtx, cancelFunc := context.WithCancel(ctx)
+	cancelCtx, cancelFunc := context.WithCancel(context.Background())
 	rp.cancelFunc = cancelFunc
 
 	// Start background caching process
@@ -169,7 +169,7 @@ func (rp *Rplidar) cachePointCloudLoop(ctx context.Context) {
 
 			rp.cacheMutex.Lock()
 			rp.cachedPointCloud = pc
-			rp.cacheMutex.Lock()
+			rp.cacheMutex.Unlock()
 		}
 	}
 }
@@ -258,8 +258,6 @@ func (rp *Rplidar) Close(ctx context.Context) error {
 
 	// Close background process
 	rp.cancelFunc()
-	rp.cacheBackgroundWorkers.Done()
-
 	rp.cacheMutex.Lock()
 	defer rp.cacheMutex.Unlock()
 
