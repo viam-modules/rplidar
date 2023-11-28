@@ -24,7 +24,7 @@ import (
 )
 
 const (
-	// The max time in milliseconds it should take for the rplidar to get scan data.
+	// The max time in milliseconds it should take for the RPlidar to get scan data.
 	defaultDeviceTimeoutMs = uint(1000)
 	// The number of full 360 scans to complete before returning a point cloud.
 	defaultNumScans = 1
@@ -37,13 +37,13 @@ const (
 )
 
 var (
-	// Model is the model of the rplidar
+	// Model is the model of the RPLiDAR
 	Model = resource.NewModel("viam", "lidar", "rplidar")
 	// rplidarModelByteMap maps the byte model representation to a string representation
 	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
 )
 
-// rplidar cotnains the connection, filters and data cached used to interface with an rplidar device.
+// rplidar contains the connection, filters and data cached used to interface with an RPLiDAR device.
 type rplidar struct {
 	resource.Named
 	resource.AlwaysRebuild
@@ -60,13 +60,13 @@ type rplidar struct {
 	logger                 logging.Logger
 }
 
-// Config describes how to configure the RPlidar component.
+// Config describes how to configure the RPLiDAR component.
 type Config struct {
 	DevicePath string  `json:"device_path"`
 	MinRangeMM float64 `json:"min_range_mm"`
 }
 
-// Validate checks that the config attributes are valid for an RPlidar.
+// Validate checks that the config attributes are valid for an RPLiDAR.
 func (conf *Config) Validate(path string) ([]string, error) {
 
 	if conf.MinRangeMM < 0 {
@@ -131,8 +131,8 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	return rp, nil
 }
 
-// setupRPLiDAR starts the motor, if necessary, and warms up the device, discard several scans to
-// ensure data returned to the user is valid.
+// setupRPLiDAR starts the motor, if necessary, and warms up the device, discard several scans in the
+// process to ensure data returned to the user is valid.
 func (rp *rplidar) setupRPLidar(ctx context.Context) error {
 	// Note: S1 rplidars do not need to start the motor before scanning can begin
 	if rplidarModelByteMap[rp.device.model] != "S1" {
@@ -152,7 +152,7 @@ func (rp *rplidar) setupRPLidar(ctx context.Context) error {
 	return nil
 }
 
-// cachePointCloudLoop is a background process that repeatedly gets point cloud data from the rplidar
+// cachePointCloudLoop is a background process that repeatedly gets point cloud data from the RPLiDAR
 // and caches it for later access.
 func (rp *rplidar) cachePointCloudLoop(ctx context.Context) {
 	for {
@@ -172,7 +172,7 @@ func (rp *rplidar) cachePointCloudLoop(ctx context.Context) {
 	}
 }
 
-// scan uses the serial connection to the rplidar to get data and create a pointcloud from it
+// scan uses the serial connection to the RPLiDAR to get data and create a pointcloud from it
 func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
 	rp.device.mutex.Lock()
 	defer rp.device.mutex.Unlock()
@@ -227,12 +227,12 @@ func (rp *rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, e
 	return rp.cachedPointCloud, nil
 }
 
-// Images is a part of the camera interface but is not implemented for the rplidar.
+// Images is a part of the camera interface but is not implemented for the RPLiDAR.
 func (rp *rplidar) Images(ctx context.Context) ([]camera.NamedImage, resource.ResponseMetadata, error) {
 	return nil, resource.ResponseMetadata{}, errors.New("images unimplemented")
 }
 
-// Properties returns information regarding the output of a camera, in this case that it returns PCDs.
+// Properties returns information regarding the output of the RPLiDAR, in this case that it returns PCDs.
 func (rp *rplidar) Properties(ctx context.Context) (camera.Properties, error) {
 	props := camera.Properties{
 		SupportsPCD: true,
@@ -240,17 +240,17 @@ func (rp *rplidar) Properties(ctx context.Context) (camera.Properties, error) {
 	return props, nil
 }
 
-// Projector is a part of the Camera interface but is not implemented for the rplidar.
+// Projector is a part of the Camera interface but is not implemented for the RPLiDAR.
 func (rp *rplidar) Projector(ctx context.Context) (transform.Projector, error) {
 	return nil, errors.New("projector unimplemented")
 }
 
-// Stream is a part of the Camera interface but is not implemented for the rplidar.
+// Stream is a part of the Camera interface but is not implemented for the RPLiDAR.
 func (rp *rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
 	return nil, errors.New("stream unimplemented")
 }
 
-// Close stops the rplidar and disposes of the driver.
+// Close stops the RPLiDAR and disposes of the driver.
 func (rp *rplidar) Close(ctx context.Context) error {
 
 	// Close background process
@@ -272,7 +272,7 @@ func (rp *rplidar) Close(ctx context.Context) error {
 		}
 		rp.device.driver.Stop()
 		// Stop the motor
-		// Note: S1 rplidars do not require the motor to be stopped during closeout
+		// Note: S1 RPLiDAR do not require the motor to be stopped during closeout
 		if rplidarModelByteMap[rp.device.model] != "S1" {
 			rp.logger.Debug("stopping motor")
 			rp.device.driver.StopMotor()
