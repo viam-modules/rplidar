@@ -5,6 +5,7 @@ concurrency:
 
 on:
   workflow_dispatch:
+  push:
   release:
     types: [released]
 
