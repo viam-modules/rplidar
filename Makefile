@@ -9,6 +9,22 @@ GO_BUILD_LDFLAGS = -ldflags "-X 'main.Version=${TAG_VERSION}' -X 'main.GitRevisi
 .PHONY: default
 default: build-module
 
+.PHONY: setup
+setup: install-dependencies
+
+.PHONY: install-dependencies
+install-dependencies:
+ifneq (, $(shell which brew))
+	brew update
+	brew install make swig pkg-config jpeg
+else ifneq (, $(shell which apt-get))
+	$(warning  "Installing rplidar external dependencies via APT.")
+	sudo apt-get update
+	sudo apt install -y make swig libjpeg-dev pkg-config
+else
+	$(error "Unsupported system. Only apt and brew currently supported.")
+endif
+
 .PHONY: goformat
 goformat:
 	go install golang.org/x/tools/cmd/goimports
