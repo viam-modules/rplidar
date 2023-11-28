@@ -38,8 +38,16 @@ jobs:
 
     steps:
       - name: Check out code
+        if: inputs.release_type != 'pr'
         uses: actions/checkout@v3
         with:
+          fetch-depth: 2
+        
+      - name: Check out PR branch code
+        if: inputs.release_type == 'pr'
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
           fetch-depth: 2
 
       - name: Clean and Fix Permissions
@@ -52,6 +60,11 @@ jobs:
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
 
+      - name: Make Setup
+        run: |
+          chown testbot:testbot -R .
+          sudo -Hu testbot bash -lc 'make setup'
+
       - name: Build and Package (PR)
         if: inputs.release_type == 'pr'
         run: |
@@ -60,13 +73,11 @@ jobs:
       - name: Build and Package (Latest)
         if: inputs.release_type == 'latest'
         run: |
-          apt-get -y install swig 
           sudo -Hu testbot bash -lc 'make BUILD_CHANNEL="latest" appimage'
 
       - name: Build and Package (Tagged)
         if: inputs.release_type == 'stable' || inputs.release_type == 'rc'
         run: |
-          apt-get -y install swig 
           sudo -Hu testbot bash -lc 'make RELEASE_TYPE="${{ inputs.release_type }}" BUILD_CHANNEL="${{ github.ref_name }}" appimage'
 
       - name: Deploy Files
