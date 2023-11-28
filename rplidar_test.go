@@ -14,19 +14,6 @@ import (
 	"go.viam.com/test"
 )
 
-const (
-	testExecutableName  = "true" // the program "true", not the boolean value
-	testDataFreqHz      = "5"
-	testIMUDataFreqHz   = "20"
-	testLidarDataFreqHz = "5"
-)
-
-var (
-	_zeroTime = time.Time{}
-	_true     = true
-	_false    = false
-)
-
 func TestValidate(t *testing.T) {
 
 	t.Run("min range is zero", func(t *testing.T) {
