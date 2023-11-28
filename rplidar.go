@@ -25,7 +25,7 @@ import (
 
 const (
 	// The max time in milliseconds it should take for the rplidar to get scan data.
-	defaultTimeoutMs = uint(1000)
+	defaultDeviceTimeoutMs = uint(1000)
 	// The number of full 360 scans to complete before returning a point cloud.
 	defaultNumScans = 1
 	// The number of scans to discard at startup to ensure valid data is returned to the user.
@@ -182,7 +182,7 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 	var dropCount int
 	nodeCount := int64(defaultNodeSize)
 	for i := 0; i < numScans; i++ {
-		result := rp.device.driver.GrabScanDataHq(rp.nodes, &nodeCount, defaultTimeoutMs)
+		result := rp.device.driver.GrabScanDataHq(rp.nodes, &nodeCount, defaultDeviceTimeoutMs)
 		if Result(result) != ResultOk {
 			return nil, fmt.Errorf("bad scan: %w", Result(result).Failed())
 		}

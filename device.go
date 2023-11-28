@@ -61,7 +61,7 @@ func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 			continue
 		}
 
-		if result := possibleDriver.GetDeviceInfo(devInfo, defaultTimeoutMs); Result(result) != ResultOk {
+		if result := possibleDriver.GetDeviceInfo(devInfo, defaultDeviceTimeoutMs); Result(result) != ResultOk {
 			r := Result(result)
 			if r == ResultOpTimeout {
 				continue
@@ -93,7 +93,7 @@ func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 	healthInfo := gen.NewRplidar_response_device_health_t()
 	defer gen.DeleteRplidar_response_device_health_t(healthInfo)
 
-	if result := driver.GetHealth(healthInfo, defaultTimeoutMs); Result(result) != ResultOk {
+	if result := driver.GetHealth(healthInfo, defaultDeviceTimeoutMs); Result(result) != ResultOk {
 		gen.RPlidarDriverDisposeDriver(driver)
 		driver = nil
 		return nil, fmt.Errorf("failed to get health: %w", Result(result).Failed())
