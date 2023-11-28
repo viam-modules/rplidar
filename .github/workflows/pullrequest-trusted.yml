@@ -15,8 +15,15 @@ on:
 # Don't forget to tag back to @main before merge.
 
 jobs:
+  test:
+    if: github.event.label.name == 'safe to test' || 
+      contains(github.event.pull_request.labels.*.name, 'appimage') || 
+      contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests')
+    uses: viamrobotics/rplidar/.github/workflows/test.yml@main
+
   # This lets people add an "appimage" tag to have appimages built for the PR
   appimage:
+    needs: [test]
     if: |
       always() && !cancelled() && contains(github.event.pull_request.labels.*.name, 'safe to test') &&
       !contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests') &&
