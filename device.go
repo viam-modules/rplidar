@@ -8,6 +8,7 @@ import (
 
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rplidar/gen"
+
 	"go.viam.com/utils/usb"
 )
 

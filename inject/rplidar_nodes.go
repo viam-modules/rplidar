@@ -1,3 +1,4 @@
+//nolint:golint
 package inject
 
 import "go.viam.com/rplidar/gen"

@@ -8,6 +8,7 @@ import (
 	"go.viam.com/rplidar/gen"
 )
 
+// GoodRplidarReturnsZeroPoints creates a Rplidar that returns only zero data
 func GoodRplidarReturnsZeroPoints() *Rplidar {
 
 	// Create injected rplidar driver
@@ -25,7 +26,7 @@ func GoodRplidarReturnsZeroPoints() *Rplidar {
 		driver: &injectedRPlidarDriver,
 	}
 
-	// Create injected node for extracting angle and distance
+	// Create injected node
 	injectedNode := inject.Nodes{}
 
 	injectedNode.GetDist_mm_q2Func = func() uint {
@@ -46,14 +47,14 @@ func GoodRplidarReturnsZeroPoints() *Rplidar {
 	return rp
 }
 
+// BadRplidarFailsToGrabScanData returns an Rplidar that fails when grabbing scan data
 func BadRplidarFailsToGrabScanData() *Rplidar {
-	// Create injected rplidar driver that fails when grabbing scan data
+	// Create injected rplidar driver
 	injectedRPlidarDriver := inject.RPlidarDriver{}
 
 	injectedRPlidarDriver.GrabScanDataHqFunc = func(a ...interface{}) uint {
 		return uint(gen.RESULT_OPERATION_FAIL)
 	}
-
 	injectedRPlidarDriver.AscendScanDataFunc = func(a ...interface{}) uint {
 		return 0
 	}
@@ -62,7 +63,7 @@ func BadRplidarFailsToGrabScanData() *Rplidar {
 		driver: &injectedRPlidarDriver,
 	}
 
-	// Create injected node for extracting angle and distance
+	// Create injected node
 	injectedNode := inject.Nodes{}
 
 	rp := &Rplidar{

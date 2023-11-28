@@ -15,7 +15,6 @@ import (
 )
 
 func TestValidate(t *testing.T) {
-
 	t.Run("min range is zero", func(t *testing.T) {
 		cfg := Config{
 			MinRangeMM: 0,
