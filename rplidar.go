@@ -43,7 +43,7 @@ var (
 	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
 )
 
-// rplidar controls an Rplidar device.
+// rplidar cotnains the connection, filters and data cached used to interface with an rplidar device.
 type rplidar struct {
 	resource.Named
 	resource.AlwaysRebuild
