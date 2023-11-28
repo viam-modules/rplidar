@@ -1,0 +1,38 @@
+
+name: Pull Request Update
+
+concurrency: 
+  group: pullrequest-${{ github.head_ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request_target:
+    branches: [ 'main' ]
+    types: [ 'labeled' ]
+
+# To test workflow updates you need to work in a branch directly on viamrobotics/rplidar
+# and tag your working branch instead of @main in any viamrobotics/rplidar "uses" below.
+# Don't forget to tag back to @main before merge.
+
+jobs:
+  # This lets people add an "appimage" tag to have appimages built for the PR
+  appimage:
+    if: |
+      always() && !cancelled() && contains(github.event.pull_request.labels.*.name, 'safe to test') &&
+      !contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests') &&
+      contains(github.event.pull_request.labels.*.name, 'appimage') && needs.test.result == 'success'
+    uses: viamrobotics/rplidar/.github/workflows/appimage.yml@main
+    with:
+      release_type: 'pr'
+    secrets:
+      GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
+
+  appimage-ignore-tests:
+    if: |
+       always() && !cancelled() && contains(github.event.pull_request.labels.*.name, 'safe to test') &&
+       contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests')
+    uses: viamrobotics/rplidar/.github/workflows/appimage.yml@main
+    with:
+      release_type: 'pr'
+    secrets:
+      GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
