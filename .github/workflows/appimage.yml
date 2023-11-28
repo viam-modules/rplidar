@@ -51,6 +51,11 @@ jobs:
         uses: google-github-actions/auth@v1
         with:
           credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+
+      - name: Build and Package (PR)
+        if: inputs.release_type == 'pr'
+        run: |
+          sudo -u testbot bash -lc 'make BUILD_CHANNEL="pr-${{ github.event.pull_request.number }}" appimage'
       
       - name: Build and Package (Latest)
         if: inputs.release_type == 'latest'
