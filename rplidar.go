@@ -115,7 +115,8 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		cache:                  &dataCache{},
 		cacheBackgroundWorkers: sync.WaitGroup{},
 
-		logger: logger,
+		testing: false,
+		logger:  logger,
 	}
 
 	// Setup RPLiDAR
@@ -194,7 +195,14 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 		rp.device.driver.AscendScanData(rp.nodes, nodeCount)
 
 		for pos := 0; pos < int(nodeCount); pos++ {
-			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, pos)
+
+			var node gen.Rplidar_response_measurement_node_hq_t
+			if !rp.testing {
+				node = gen.MeasurementNodeHqArray_getitem(rp.nodes, pos)
+			} else {
+				node = rp.nodes
+			}
+
 			if node.GetDist_mm_q2() == 0 {
 				dropCount++
 				continue // TODO(erd): okay to skip?

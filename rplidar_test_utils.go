@@ -8,7 +8,7 @@ import (
 	"go.viam.com/rplidar/gen"
 )
 
-func GoodScanRplidar() Rplidar {
+func GoodRplidarReturnsZeroPoints() *Rplidar {
 
 	// Create injected rplidar driver
 	injectedRPlidarDriver := inject.RPlidarDriver{}
@@ -36,19 +36,17 @@ func GoodScanRplidar() Rplidar {
 		return 0
 	}
 
-	// gen.MeasurementNodeHqArray_getitem
-
-	rp := Rplidar{
+	rp := &Rplidar{
 		device:      injectedRplidarDevice,
 		nodes:       &injectedNode,
-		deviceMutex: &sync.Mutex{},
+		deviceMutex: sync.Mutex{},
+		testing:     true,
 	}
 
 	return rp
 }
 
-func BadScanRplidar() Rplidar {
-
+func BadRplidarFailsToGrabScanData() *Rplidar {
 	// Create injected rplidar driver that fails when grabbing scan data
 	injectedRPlidarDriver := inject.RPlidarDriver{}
 
@@ -67,10 +65,11 @@ func BadScanRplidar() Rplidar {
 	// Create injected node for extracting angle and distance
 	injectedNode := inject.Nodes{}
 
-	rp := Rplidar{
+	rp := &Rplidar{
 		device:      injectedRplidarDevice,
 		nodes:       &injectedNode,
-		deviceMutex: &sync.Mutex{},
+		deviceMutex: sync.Mutex{},
+		testing:     true,
 	}
 
 	return rp

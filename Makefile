@@ -40,10 +40,6 @@ lint: goformat
 	go list -f '{{.Dir}}' ./... | grep -v gen | xargs `go env GOPATH`/bin/go-errorlint -errorf
 	go list -f '{{.Dir}}' ./... | grep -v gen | xargs go run github.com/golangci/golangci-lint/cmd/golangci-lint run -v --config=./etc/.golangci.yaml
 
-.PHONY: test
-test:
-	go test -v -coverprofile=coverage.txt -covermode=atomic ./...
-
 .PHONY: sdk
 sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE)
@@ -60,9 +56,15 @@ swig: sdk
 build-module: swig
 	mkdir -p bin && CGO_LDFLAGS=${CGO_LDFLAGS} go build $(GO_BUILD_LDFLAGS) -o bin/rplidar-module module/main.go
 
+<<<<<<< HEAD
 .PHONY: install
 install:
 	sudo cp bin/rplidar-module /usr/local/bin/rplidar-module
+=======
+.PHONY: test
+test: swig
+	CGO_LDFLAGS=${CGO_LDFLAGS} go test -v -coverprofile=coverage.txt -covermode=atomic ./...
+>>>>>>> a11f69a (Add tests)
 
 .PHONY: clean
 clean: clean-sdk
