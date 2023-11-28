@@ -4,6 +4,7 @@ package rplidar
 import (
 	"errors"
 	"fmt"
+	"sync"
 
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rplidar/gen"
@@ -17,6 +18,7 @@ type rplidarDevice struct {
 	serialNumber     string
 	firmwareVersion  string
 	hardwareRevision int
+	mutex            sync.Mutex
 }
 
 func searchForDevicePath(logger logging.Logger) (string, error) {
@@ -42,7 +44,7 @@ func searchForDevicePath(logger logging.Logger) (string, error) {
 	return usbDevices[0].Path, nil
 }
 
-func getRplidarDevice(devicePath string) (rplidarDevice, error) {
+func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 	var driver gen.RPlidarDriver
 	devInfo := gen.NewRplidar_response_device_info_t()
 	defer gen.DeleteRplidar_response_device_info_t(devInfo)
@@ -72,9 +74,9 @@ func getRplidarDevice(devicePath string) (rplidarDevice, error) {
 	}
 	if driver == nil {
 		if connectErr == nil {
-			return rplidarDevice{}, fmt.Errorf("timed out connecting to %q", devicePath)
+			return &rplidarDevice{}, fmt.Errorf("timed out connecting to %q", devicePath)
 		}
-		return rplidarDevice{}, connectErr
+		return nil, connectErr
 	}
 
 	serialNum := devInfo.GetSerialnum()
@@ -94,13 +96,13 @@ func getRplidarDevice(devicePath string) (rplidarDevice, error) {
 	if result := driver.GetHealth(healthInfo, defaultTimeoutMs); Result(result) != ResultOk {
 		gen.RPlidarDriverDisposeDriver(driver)
 		driver = nil
-		return rplidarDevice{}, fmt.Errorf("failed to get health: %w", Result(result).Failed())
+		return nil, fmt.Errorf("failed to get health: %w", Result(result).Failed())
 	}
 
 	if int(healthInfo.GetStatus()) == gen.RPLIDAR_STATUS_ERROR {
 		gen.RPlidarDriverDisposeDriver(driver)
 		driver = nil
-		return rplidarDevice{}, errors.New("bad health")
+		return nil, errors.New("bad health")
 	}
 
 	rplidarDevice := &rplidarDevice{
@@ -109,7 +111,8 @@ func getRplidarDevice(devicePath string) (rplidarDevice, error) {
 		serialNumber:     serialNumStr,
 		firmwareVersion:  firmwareVer,
 		hardwareRevision: hardwareRev,
+		mutex:            sync.Mutex{},
 	}
 
-	return *rplidarDevice, nil
+	return rplidarDevice, nil
 }
