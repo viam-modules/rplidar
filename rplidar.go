@@ -287,12 +287,8 @@ func (rp *rplidar) Close(ctx context.Context) error {
 			}()
 		}
 		rp.device.driver.Stop()
-<<<<<<< HEAD
 		// Stop the motor
 		// Note: S1 RPLiDAR do not require the motor to be stopped during closeout
-=======
-		// Note: S1 rplidars do not require the motor to be stopped during closeout
->>>>>>> 2d91a12 (tests)
 		if rplidarModelByteMap[rp.device.model] != "S1" {
 			rp.logger.Debug("stopping motor")
 			rp.device.driver.StopMotor()
