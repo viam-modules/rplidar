@@ -43,6 +43,12 @@ var (
 	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
 )
 
+// dataCache
+type pointCloudCache struct {
+	mutex      sync.RWMutex
+	pointCloud pointcloud.PointCloud
+}
+
 // rplidar contains the connection, filters and data cached used to interface with an RPLiDAR device.
 type rplidar struct {
 	resource.Named
@@ -52,12 +58,11 @@ type rplidar struct {
 	nodes      gen.Rplidar_response_measurement_node_hq_t
 	minRangeMM float64
 
-	cancelFunc       func()
-	cacheMutex       sync.RWMutex
-	cachedPointCloud pointcloud.PointCloud
-
+	cancelFunc             func()
 	cacheBackgroundWorkers sync.WaitGroup
-	logger                 logging.Logger
+	cache                  *pointCloudCache
+
+	logger logging.Logger
 }
 
 // Config describes how to configure the RPLiDAR component.
@@ -102,12 +107,16 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 	logger.Info("found and connected to an " + rplidarModelByteMap[rplidarDevice.model] + " rplidar")
 
+	cachedPointCloud := &pointCloudCache{
+		mutex: sync.RWMutex{},
+	}
+
 	rp := &rplidar{
 		Named:      c.ResourceName().AsNamed(),
 		device:     rplidarDevice,
 		minRangeMM: svcConf.MinRangeMM,
 
-		cacheMutex:             sync.RWMutex{},
+		cache:                  cachedPointCloud,
 		cacheBackgroundWorkers: sync.WaitGroup{},
 
 		logger: logger,
@@ -165,9 +174,9 @@ func (rp *rplidar) cachePointCloudLoop(ctx context.Context) {
 				rp.logger.Debugf("issue getting pointcloud to cache: %v", err)
 			}
 
-			rp.cacheMutex.Lock()
-			rp.cachedPointCloud = pc
-			rp.cacheMutex.Unlock()
+			rp.cache.mutex.Lock()
+			rp.cache.pointCloud = pc
+			rp.cache.mutex.Unlock()
 		}
 	}
 }
@@ -218,13 +227,13 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 // NextPointCloud returns the current cached point cloud. If no pointcloud has been added to the cache at the
 // point this call is made, it will return an error
 func (rp *rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
-	rp.cacheMutex.RLock()
-	defer rp.cacheMutex.RUnlock()
+	rp.cache.mutex.RLock()
+	defer rp.cache.mutex.RUnlock()
 
-	if rp.cachedPointCloud == nil {
+	if rp.cache.pointCloud == nil {
 		return nil, errors.New("pointcloud has not been saved yet")
 	}
-	return rp.cachedPointCloud, nil
+	return rp.cache.pointCloud, nil
 }
 
 // Images is a part of the camera interface but is not implemented for the RPLiDAR.
@@ -256,8 +265,8 @@ func (rp *rplidar) Close(ctx context.Context) error {
 	// Close background process
 	rp.cancelFunc()
 	rp.cacheBackgroundWorkers.Wait()
-	rp.cacheMutex.Lock()
-	defer rp.cacheMutex.Unlock()
+	rp.cache.mutex.Lock()
+	defer rp.cache.mutex.Unlock()
 
 	// Close driver related resources
 	rp.device.mutex.Lock()
