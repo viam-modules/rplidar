@@ -56,21 +56,21 @@ func TestScan(t *testing.T) {
 		expectedPointCloud pointcloud.PointCloud
 	}{
 		{
-			description:        "rplidar driver that fails to grab new data but zero scans",
+			description:        "invalid rplidar driver that fails to grab new data but zero scans",
 			rp:                 BadRplidarFailsToGrabScanData(),
 			scanCount:          0,
 			expectedErr:        nil,
 			expectedPointCloud: nil,
 		},
 		{
-			description:        "rplidar driver that fails to grab new data",
+			description:        "invalid rplidar driver that fails to grab new data",
 			rp:                 BadRplidarFailsToGrabScanData(),
 			scanCount:          1,
 			expectedErr:        errors.New("bad scan"),
 			expectedPointCloud: nil,
 		},
 		{
-			description:        "rplidar driver that is good",
+			description:        "valid rplidar driver that returns all points at origin",
 			rp:                 GoodRplidarReturnsZeroPoints(),
 			scanCount:          1,
 			expectedErr:        nil,
