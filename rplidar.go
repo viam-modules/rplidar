@@ -43,8 +43,8 @@ var (
 	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
 )
 
-// dataCache
-type pointCloudCache struct {
+// dataCache stores pointcloud data returned from the RPLiDAR for later access. This data is under mutex protection.
+type dataCache struct {
 	mutex      sync.RWMutex
 	pointCloud pointcloud.PointCloud
 }
@@ -60,7 +60,7 @@ type rplidar struct {
 
 	cancelFunc             func()
 	cacheBackgroundWorkers sync.WaitGroup
-	cache                  *pointCloudCache
+	cache                  *dataCache
 
 	logger logging.Logger
 }
@@ -107,7 +107,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 	logger.Info("found and connected to an " + rplidarModelByteMap[rplidarDevice.model] + " rplidar")
 
-	cachedPointCloud := &pointCloudCache{
+	cachedPointCloud := &dataCache{
 		mutex: sync.RWMutex{},
 	}
 
