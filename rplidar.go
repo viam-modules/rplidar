@@ -131,7 +131,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	return rp, nil
 }
 
-// setupRPLiDAR starts the motor, in necessary, warms up the device, and ensures data returned to the
+// setupRPLiDAR starts the motor, if necessary, warms up the device, and ensures data returned to the
 // user is valid.
 func (rp *rplidar) setupRPLidar(ctx context.Context) error {
 	// Note: S1 rplidars do not need to start the motor before scanning can begin
