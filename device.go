@@ -111,7 +111,6 @@ func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 		serialNumber:     serialNumStr,
 		firmwareVersion:  firmwareVer,
 		hardwareRevision: hardwareRev,
-		mutex:            sync.Mutex{},
 	}
 
 	return rplidarDevice, nil

@@ -107,16 +107,12 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 	logger.Info("found and connected to an " + rplidarModelByteMap[rplidarDevice.model] + " rplidar")
 
-	cachedPointCloud := &dataCache{
-		mutex: sync.RWMutex{},
-	}
-
 	rp := &rplidar{
 		Named:      c.ResourceName().AsNamed(),
 		device:     rplidarDevice,
 		minRangeMM: svcConf.MinRangeMM,
 
-		cache:                  cachedPointCloud,
+		cache:                  &dataCache{},
 		cacheBackgroundWorkers: sync.WaitGroup{},
 
 		logger: logger,
@@ -143,7 +139,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 // setupRPLiDAR starts the motor, if necessary, warms up the device, and ensures data returned to the
 // user is valid.
 func (rp *rplidar) setupRPLidar(ctx context.Context) error {
-	// Note: S1 rplidars do not need to start the motor before scanning can begin
+	// Note: S1 RPLiDARs do not need to start the motor before scanning can begin
 	if rplidarModelByteMap[rp.device.model] != "S1" {
 		rp.logger.Debug("starting motor")
 		rp.device.driver.StartMotor()
