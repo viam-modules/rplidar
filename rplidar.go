@@ -202,7 +202,7 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 			} else {
 				// Pass node through as gen.MeasurementNodeHqArray_getitem requires knowledge of allocated memory
 				// used by the C++ code.
-				// TODO: Implement logic to allow tests of full artifact files
+				// TODO: Implement logic to allow testing using artifact files
 				node = rp.nodes
 			}
 
