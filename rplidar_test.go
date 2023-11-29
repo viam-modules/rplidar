@@ -50,7 +50,7 @@ func TestScan(t *testing.T) {
 
 	cases := []struct {
 		description        string
-		rp                 *Rplidar
+		rp                 *rplidar
 		scanCount          int
 		expectedErr        error
 		expectedPointCloud pointcloud.PointCloud
@@ -103,12 +103,12 @@ func TestScanArtifact(t *testing.T) {
 
 func TestNextPointCloud(t *testing.T) {
 	ctx := context.Background()
-	rp := Rplidar{
-		cacheMutex: sync.RWMutex{},
+	rp := rplidar{
+		cache: &dataCache{},
 	}
 
 	t.Run("returns nil pointcloud from cache", func(t *testing.T) {
-		rp.cachedPointCloud = nil
+		rp.cache.pointCloud = nil
 
 		pc, err := rp.NextPointCloud(ctx)
 		test.That(t, err, test.ShouldNotBeNil)
@@ -117,7 +117,7 @@ func TestNextPointCloud(t *testing.T) {
 	})
 
 	t.Run("returns empty pointcloud from cache", func(t *testing.T) {
-		rp.cachedPointCloud = pointcloud.New()
+		rp.cache.pointCloud = pointcloud.New()
 
 		pc, err := rp.NextPointCloud(ctx)
 		test.That(t, err, test.ShouldBeNil)
@@ -128,7 +128,7 @@ func TestNextPointCloud(t *testing.T) {
 	t.Run("returns non-empty pointcloud from cache", func(t *testing.T) {
 		cachedPointCloud := pointcloud.New()
 		cachedPointCloud.Set(r3.Vector{X: 1, Y: 2, Z: 3}, pointcloud.NewBasicData())
-		rp.cachedPointCloud = cachedPointCloud
+		rp.cache.pointCloud = cachedPointCloud
 
 		pc, err := rp.NextPointCloud(ctx)
 		test.That(t, err, test.ShouldBeNil)
@@ -138,7 +138,7 @@ func TestNextPointCloud(t *testing.T) {
 
 func TestProperties(t *testing.T) {
 	ctx := context.Background()
-	rp := Rplidar{}
+	rp := rplidar{}
 
 	prop, err := rp.Properties(ctx)
 	test.That(t, err, test.ShouldBeNil)
@@ -148,10 +148,10 @@ func TestProperties(t *testing.T) {
 func TestClose(t *testing.T) {
 
 	ctx := context.Background()
-	rp := Rplidar{
+	rp := rplidar{
+		device:                 &rplidarDevice{},
+		cache:                  &dataCache{},
 		cancelFunc:             func() {},
-		deviceMutex:            sync.Mutex{},
-		cacheMutex:             sync.RWMutex{},
 		cacheBackgroundWorkers: sync.WaitGroup{},
 	}
 	t.Run("no active background workers and or mutex blocking", func(t *testing.T) {
@@ -170,10 +170,10 @@ func TestClose(t *testing.T) {
 	t.Run("no active background workers and device mutex blocking", func(t *testing.T) {
 		rp.cacheBackgroundWorkers = sync.WaitGroup{}
 		rp.cancelFunc = func() {}
-		rp.deviceMutex.Lock()
+		rp.device.mutex.Lock()
 		go func() {
 			time.Sleep(10 * time.Millisecond)
-			rp.deviceMutex.Unlock()
+			rp.device.mutex.Unlock()
 		}()
 
 		startTime := time.Now()
@@ -185,10 +185,10 @@ func TestClose(t *testing.T) {
 	t.Run("no active background workers and cache mutex blocking", func(t *testing.T) {
 		rp.cacheBackgroundWorkers = sync.WaitGroup{}
 		rp.cancelFunc = func() {}
-		rp.cacheMutex.Lock()
+		rp.cache.mutex.Lock()
 		go func() {
 			time.Sleep(10 * time.Millisecond)
-			rp.cacheMutex.Unlock()
+			rp.cache.mutex.Unlock()
 		}()
 
 		startTime := time.Now()
@@ -200,7 +200,7 @@ func TestClose(t *testing.T) {
 
 func TestUnimplementedFunctions(t *testing.T) {
 	ctx := context.Background()
-	rp := Rplidar{}
+	rp := rplidar{}
 
 	t.Run("unimplemented Images function", func(t *testing.T) {
 		namedImage, metadata, err := rp.Images(ctx)

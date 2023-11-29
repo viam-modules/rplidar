@@ -1,15 +1,14 @@
+//nolint:golint
 package rplidar
 
 import (
-	"sync"
-
 	"go.viam.com/rplidar/inject"
 
 	"go.viam.com/rplidar/gen"
 )
 
 // GoodRplidarReturnsZeroPoints creates a Rplidar that returns only zero data
-func GoodRplidarReturnsZeroPoints() *Rplidar {
+func GoodRplidarReturnsZeroPoints() *rplidar {
 
 	// Create injected rplidar driver
 	injectedRPlidarDriver := inject.RPlidarDriver{}
@@ -37,18 +36,17 @@ func GoodRplidarReturnsZeroPoints() *Rplidar {
 		return 0
 	}
 
-	rp := &Rplidar{
-		device:      injectedRplidarDevice,
-		nodes:       &injectedNode,
-		deviceMutex: sync.Mutex{},
-		testing:     true,
+	rp := &rplidar{
+		device:  &injectedRplidarDevice,
+		nodes:   &injectedNode,
+		testing: true,
 	}
 
 	return rp
 }
 
 // BadRplidarFailsToGrabScanData returns an Rplidar that fails when grabbing scan data
-func BadRplidarFailsToGrabScanData() *Rplidar {
+func BadRplidarFailsToGrabScanData() *rplidar {
 	// Create injected rplidar driver
 	injectedRPlidarDriver := inject.RPlidarDriver{}
 
@@ -66,11 +64,10 @@ func BadRplidarFailsToGrabScanData() *Rplidar {
 	// Create injected node
 	injectedNode := inject.Nodes{}
 
-	rp := &Rplidar{
-		device:      injectedRplidarDevice,
-		nodes:       &injectedNode,
-		deviceMutex: sync.Mutex{},
-		testing:     true,
+	rp := &rplidar{
+		device:  &injectedRplidarDevice,
+		nodes:   &injectedNode,
+		testing: true,
 	}
 
 	return rp

@@ -62,6 +62,8 @@ type rplidar struct {
 	cacheBackgroundWorkers sync.WaitGroup
 	cache                  *dataCache
 
+	testing bool
+
 	logger logging.Logger
 }
 
