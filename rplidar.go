@@ -9,8 +9,6 @@ import (
 
 	"go.viam.com/rplidar/gen"
 
-	"go.viam.com/utils/usb"
-
 	goutils "go.viam.com/utils"
 
 	"github.com/golang/geo/r3"
@@ -26,42 +24,54 @@ import (
 )
 
 const (
-	defaultTimeout = uint(1000)
+	// The max time in milliseconds it should take for the RPlidar to get scan data.
+	defaultDeviceTimeoutMs = uint(1000)
+	// The number of full 360 scans to complete before returning a point cloud.
+	defaultNumScans = 1
+	// The number of scans to discard at startup to ensure valid data is returned to the user.
+	defaultWarmupNumDiscardedScans = 5
+	// The number of max nodes or data points returned in each scan.
+	defaultNodeSize = 8192
+	// The amount of time to wait after the motor start before scanning can begin.
+	defaultWarmUpTimeout = time.Second
 )
 
 var (
-	// Model is the model of the rplidar
+	// Model is the model of the RPLiDAR
 	Model = resource.NewModel("viam", "lidar", "rplidar")
 	// rplidarModelByteMap maps the byte model representation to a string representation
 	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
 )
 
-// Rplidar controls an Rplidar device.
-type Rplidar struct {
+// dataCache stores pointcloud data returned from the RPLiDAR for later access. This data is under mutex protection.
+type dataCache struct {
+	mutex      sync.RWMutex
+	pointCloud pointcloud.PointCloud
+}
+
+// rplidar contains the connection, filters and data cached used to interface with an RPLiDAR device.
+type rplidar struct {
 	resource.Named
 	resource.AlwaysRebuild
-	mu                      sync.Mutex
-	close                   bool
-	device                  rplidarDevice
-	nodes                   gen.Rplidar_response_measurement_node_hq_t
-	nodeSize                int
-	started                 bool
-	scannedOnce             bool
-	defaultNumScans         int
-	warmupNumDiscardedScans int
 
+	device     *rplidarDevice
+	nodes      gen.Rplidar_response_measurement_node_hq_t
 	minRangeMM float64
+
+	cancelFunc             func()
+	cacheBackgroundWorkers sync.WaitGroup
+	cache                  *dataCache
 
 	logger logging.Logger
 }
 
-// Config describes how to configure the RPlidar component.
+// Config describes how to configure the RPLiDAR component.
 type Config struct {
 	DevicePath string  `json:"device_path"`
 	MinRangeMM float64 `json:"min_range_mm"`
 }
 
-// Validate checks that the config attributes are valid for an RPlidar.
+// Validate checks that the config attributes are valid for an RPLiDAR.
 func (conf *Config) Validate(path string) ([]string, error) {
 
 	if conf.MinRangeMM < 0 {
@@ -97,64 +107,87 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 	logger.Info("found and connected to an " + rplidarModelByteMap[rplidarDevice.model] + " rplidar")
 
-	rp := &Rplidar{
-		Named:                   c.ResourceName().AsNamed(),
-		device:                  rplidarDevice,
-		nodeSize:                8192,
-		logger:                  logger,
-		defaultNumScans:         1,
-		warmupNumDiscardedScans: 5,
-		minRangeMM:              svcConf.MinRangeMM,
+	rp := &rplidar{
+		Named:      c.ResourceName().AsNamed(),
+		device:     rplidarDevice,
+		minRangeMM: svcConf.MinRangeMM,
+
+		cache:                  &dataCache{},
+		cacheBackgroundWorkers: sync.WaitGroup{},
+
+		logger: logger,
 	}
 
-	rp.mu.Lock()
-	defer rp.mu.Unlock()
-	rp.started = true
-
-	// S1 rplidars do not require the motor to be started before scanning can begin
-	if rplidarModelByteMap[rp.device.model] != "S1" {
-		rp.logger.Debug("starting motor")
-		rp.device.driver.StartMotor()
+	// Setup RPLiDAR
+	if err := rp.setupRPLidar(ctx); err != nil {
+		return nil, errors.Wrap(err, "there was a problem setting up the rplidar")
 	}
-	rp.device.driver.StartScan(false, true)
-	rp.nodes = gen.New_measurementNodeHqArray(rp.nodeSize)
+
+	cancelCtx, cancelFunc := context.WithCancel(context.Background())
+	rp.cancelFunc = cancelFunc
+
+	// Start background caching of pointcloud data
+	rp.cacheBackgroundWorkers.Add(1)
+	go func() {
+		defer rp.cacheBackgroundWorkers.Done()
+		rp.cachePointCloudLoop(cancelCtx)
+	}()
 
 	return rp, nil
 }
 
-// NextPointCloud performs a scan on the rplidar and performs some filtering to clean up the data.
-func (rp *Rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
-	rp.mu.Lock()
-	defer rp.mu.Unlock()
-
-	if rp.close {
-		return nil, errors.New("resource (rplidar) is closed")
+// setupRPLiDAR starts the motor, if necessary, warms up the device, and ensures data returned to the
+// user is valid.
+func (rp *rplidar) setupRPLidar(ctx context.Context) error {
+	// Note: S1 RPLiDARs do not need to start the motor before scanning can begin
+	if rplidarModelByteMap[rp.device.model] != "S1" {
+		rp.logger.Debug("starting motor")
+		rp.device.driver.StartMotor()
 	}
 
-	if !rp.started {
-		return nil, errors.New("resource (rplidar) failed to initialize properly")
+	// Perform warmup scans
+	rp.device.driver.StartScan(false, true)
+	rp.nodes = gen.New_measurementNodeHqArray(defaultNodeSize)
+
+	goutils.SelectContextOrWait(ctx, defaultWarmUpTimeout)
+	if _, err := rp.scan(ctx, defaultWarmupNumDiscardedScans); err != nil {
+		return err
 	}
 
-	pc, err := rp.getPointCloud(ctx)
-	if err != nil {
-		return nil, err
-	}
-	return pc, nil
+	return nil
 }
 
-// Images is a part of the camera interface but is not implemented for the rplidar.
-func (rp *Rplidar) Images(ctx context.Context) ([]camera.NamedImage, resource.ResponseMetadata, error) {
-	return nil, resource.ResponseMetadata{}, errors.New("images unimplemented")
+// cachePointCloudLoop is a background process that repeatedly gets point cloud data from the RPLiDAR
+// and caches it for later access.
+func (rp *rplidar) cachePointCloudLoop(ctx context.Context) {
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			pc, err := rp.scan(ctx, defaultNumScans)
+			if err != nil {
+				rp.logger.Debugf("issue getting pointcloud to cache: %v", err)
+			}
+
+			rp.cache.mutex.Lock()
+			rp.cache.pointCloud = pc
+			rp.cache.mutex.Unlock()
+		}
+	}
 }
 
-func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
+// scan uses the serial connection to the RPLiDAR to get data and create a pointcloud from it
+func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
+	rp.device.mutex.Lock()
+	defer rp.device.mutex.Unlock()
+
 	pc := pointcloud.New()
-	nodeCount := int64(rp.nodeSize)
 
 	var dropCount int
+	nodeCount := int64(defaultNodeSize)
 	for i := 0; i < numScans; i++ {
-		nodeCount = int64(rp.nodeSize)
-		result := rp.device.driver.GrabScanDataHq(rp.nodes, &nodeCount, defaultTimeout)
+		result := rp.device.driver.GrabScanDataHq(rp.nodes, &nodeCount, defaultDeviceTimeoutMs)
 		if Result(result) != ResultOk {
 			return nil, fmt.Errorf("bad scan: %w", Result(result).Failed())
 		}
@@ -187,46 +220,53 @@ func (rp *Rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 	return pc, nil
 }
 
-func (rp *Rplidar) getPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
-	// wait and then discard scans for warmup
-	if !rp.scannedOnce {
-		rp.scannedOnce = true
-		goutils.SelectContextOrWait(ctx, time.Duration(rp.warmupNumDiscardedScans)*time.Second)
-		if _, err := rp.scan(ctx, rp.warmupNumDiscardedScans); err != nil {
-			return nil, err
-		}
-	}
+// NextPointCloud returns the current cached point cloud. If no pointcloud has been added to the cache at the
+// point this call is made, it will return an error
+func (rp *rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
+	rp.cache.mutex.RLock()
+	defer rp.cache.mutex.RUnlock()
 
-	pc, err := rp.scan(ctx, rp.defaultNumScans)
-	if err != nil {
-		return nil, err
+	if rp.cache.pointCloud == nil {
+		return nil, errors.New("pointcloud has not been saved yet")
 	}
-	return pc, nil
+	return rp.cache.pointCloud, nil
 }
 
-// Properties returns information regarding the output of a camera, in this case that it returns PCDs.
-func (rp *Rplidar) Properties(ctx context.Context) (camera.Properties, error) {
+// Images is a part of the camera interface but is not implemented for the RPLiDAR.
+func (rp *rplidar) Images(ctx context.Context) ([]camera.NamedImage, resource.ResponseMetadata, error) {
+	return nil, resource.ResponseMetadata{}, errors.New("images unimplemented")
+}
+
+// Properties returns information regarding the output of the RPLiDAR, in this case that it returns PCDs.
+func (rp *rplidar) Properties(ctx context.Context) (camera.Properties, error) {
 	props := camera.Properties{
 		SupportsPCD: true,
 	}
 	return props, nil
 }
 
-// Projector is a part of the Camera interface but is not implemented for the rplidar.
-func (rp *Rplidar) Projector(ctx context.Context) (transform.Projector, error) {
+// Projector is a part of the Camera interface but is not implemented for the RPLiDAR.
+func (rp *rplidar) Projector(ctx context.Context) (transform.Projector, error) {
 	return nil, errors.New("projector unimplemented")
 }
 
-// Stream is a part of the Camera interface but is not implemented for the rplidar.
-func (rp *Rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
+// Stream is a part of the Camera interface but is not implemented for the RPLiDAR.
+func (rp *rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
 	return nil, errors.New("stream unimplemented")
 }
 
-// Close stops the rplidar and disposes of the driver.
-func (rp *Rplidar) Close(ctx context.Context) error {
-	rp.mu.Lock()
-	defer rp.mu.Unlock()
-	rp.close = true
+// Close stops the RPLiDAR and disposes of the driver.
+func (rp *rplidar) Close(ctx context.Context) error {
+
+	// Close background process
+	rp.cancelFunc()
+	rp.cacheBackgroundWorkers.Wait()
+	rp.cache.mutex.Lock()
+	defer rp.cache.mutex.Unlock()
+
+	// Close driver related resources
+	rp.device.mutex.Lock()
+	defer rp.device.mutex.Unlock()
 
 	if rp.device.driver != nil {
 		if rp.nodes != nil {
@@ -236,12 +276,12 @@ func (rp *Rplidar) Close(ctx context.Context) error {
 			}()
 		}
 		rp.device.driver.Stop()
-		// S1 rplidars do not require the motor to be stopped during closeout
+		// Stop the motor
+		// Note: S1 RPLiDAR do not require the motor to be stopped during closeout
 		if rplidarModelByteMap[rp.device.model] != "S1" {
 			rp.logger.Debug("stopping motor")
 			rp.device.driver.StopMotor()
 		}
-		rp.started = false
 
 		gen.RPlidarDriverDisposeDriver(rp.device.driver)
 		rp.device.driver = nil
@@ -267,27 +307,4 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	d.SetIntensity(uint16(reflectivity) * 255)
 
 	return pos, d
-}
-
-func searchForDevicePath(logger logging.Logger) (string, error) {
-	var usbInfo = &usb.Identifier{
-		Vendor:  0x10c4,
-		Product: 0xea60,
-	}
-
-	usbDevices := usb.Search(
-		usb.SearchFilter{},
-		func(vendorID, productID int) bool {
-			return vendorID == usbInfo.Vendor && productID == usbInfo.Product
-		})
-
-	if len(usbDevices) == 0 {
-		return "", errors.New("no usb devices found")
-	}
-
-	logger.Debugf("detected %d lidar devices", len(usbDevices))
-	for _, comp := range usbDevices {
-		logger.Debug(comp)
-	}
-	return usbDevices[0].Path, nil
 }
