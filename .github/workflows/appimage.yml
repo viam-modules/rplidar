@@ -32,7 +32,7 @@ jobs:
     container:
       image: ${{ matrix.image }}
       options: --platform ${{ matrix.platform }}
-    timeout-minutes: 15
+    timeout-minutes: 30
     outputs:
       date: ${{ steps.build_date.outputs.date }}
 
