@@ -1,0 +1,82 @@
+name: Test
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  build_and_test:
+    name: Build and Test RPLiDAR
+    strategy:
+      matrix:
+        include:
+          - arch: buildjet-8vcpu-ubuntu-2204
+            image: ghcr.io/viamrobotics/canon:amd64-cache
+            platform: linux/amd64
+          - arch: buildjet-8vcpu-ubuntu-2204-arm
+            image: ghcr.io/viamrobotics/canon:arm64-cache
+            platform: linux/arm64
+    runs-on: ${{ matrix.arch }}
+    container:
+      image: ${{ matrix.image }}
+      options: --platform ${{ matrix.platform }}
+    timeout-minutes: 45
+    steps:
+    # Now that viam-cartographer is public, can't directly comment without token having full read/write access
+    # appimage-comment.yml will trigger separately and post the actual comments
+
+    - name: Set PR Number variable
+      run: |
+        echo "PR_NUMBER=${{ github.event.pull_request.number }}" >> pr.env
+
+    - name: Set appimage variable
+      if: contains(github.event.pull_request.labels.*.name, 'appimage') || contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests')
+      run: |
+        echo "APPIMAGE=true" >> pr.env
+
+    - name: Upload PR variables
+      uses: actions/upload-artifact@v3
+      with:
+        name: pr-variables
+        path: |
+         pr.env
+        retention-days: 1
+
+    - name: Check out main branch code
+      if: github.event_name != 'pull_request_target'
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 2
+
+    - name: Check out PR branch code
+      if: github.event_name == 'pull_request_target'
+      uses: actions/checkout@v3
+      with:
+        ref: ${{ github.event.pull_request.head.sha }}
+        fetch-depth: 2
+
+    - name: apt update
+      run: |
+        apt-get update
+
+    - name: Verify no uncommitted changes from make lint
+      run: |
+        git init
+        git add .
+        chown -R testbot:testbot .
+        sudo -u testbot bash -lc 'sudo apt-get install -y clang-format && make lint'
+        GEN_DIFF=$(git status -s --ignore-submodules)
+
+        if [ -n "$GEN_DIFF" ]; then
+            echo '"make lint" resulted in changes not in git' 1>&2
+            git status
+            exit 1
+        fi
+
+    - name: make setup
+      run: |
+        sudo -u testbot bash -lc 'make setup'
+
+    - name: make test
+      run: |
+        sudo -u testbot bash -lc 'make test'

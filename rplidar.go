@@ -194,7 +194,9 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 		rp.device.driver.AscendScanData(rp.nodes, nodeCount)
 
 		for pos := 0; pos < int(nodeCount); pos++ {
+
 			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, pos)
+
 			if node.GetDist_mm_q2() == 0 {
 				dropCount++
 				continue // TODO(erd): okay to skip?
@@ -286,6 +288,7 @@ func (rp *rplidar) Close(ctx context.Context) error {
 		gen.RPlidarDriverDisposeDriver(rp.device.driver)
 		rp.device.driver = nil
 	}
+
 	return nil
 }
 
