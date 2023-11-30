@@ -11,6 +11,8 @@ import (
 	"go.viam.com/rdk/components/camera"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/resource"
+	"go.viam.com/rplidar/gen"
+	"go.viam.com/rplidar/inject"
 	"go.viam.com/test"
 )
 
@@ -22,7 +24,7 @@ func TestValidate(t *testing.T) {
 
 		deps, err := cfg.Validate("")
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, len(deps), test.ShouldEqual, 0)
+		test.That(t, deps, test.ShouldBeNil)
 	})
 	t.Run("min range is greater than zero", func(t *testing.T) {
 		cfg := Config{
@@ -31,7 +33,7 @@ func TestValidate(t *testing.T) {
 
 		deps, err := cfg.Validate("")
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, len(deps), test.ShouldEqual, 0)
+		test.That(t, deps, test.ShouldBeNil)
 	})
 	t.Run("min range is less than zero", func(t *testing.T) {
 		cfg := Config{
@@ -41,64 +43,47 @@ func TestValidate(t *testing.T) {
 		deps, err := cfg.Validate("")
 		test.That(t, err, test.ShouldNotBeNil)
 		test.That(t, err.Error(), test.ShouldEqual, "min_range must be positive")
-		test.That(t, len(deps), test.ShouldEqual, 0)
+		test.That(t, deps, test.ShouldBeNil)
 	})
 }
 
 func TestScan(t *testing.T) {
 	ctx := context.Background()
 
-	cases := []struct {
-		description        string
-		rp                 *rplidar
-		scanCount          int
-		expectedErr        error
-		expectedPointCloud pointcloud.PointCloud
-	}{
-		{
-			description:        "invalid rplidar driver that fails to grab new data but zero scans",
-			rp:                 BadRplidarFailsToGrabScanData(),
-			scanCount:          0,
-			expectedErr:        nil,
-			expectedPointCloud: nil,
-		},
-		{
-			description:        "invalid rplidar driver that fails to grab new data",
-			rp:                 BadRplidarFailsToGrabScanData(),
-			scanCount:          1,
-			expectedErr:        errors.New("bad scan"),
-			expectedPointCloud: nil,
-		},
-		{
-			description:        "valid rplidar driver that returns all points at origin",
-			rp:                 GoodRplidarReturnsZeroPoints(),
-			scanCount:          1,
-			expectedErr:        nil,
-			expectedPointCloud: nil,
-		},
-		// TODO: Add artifact test
+	// Create injected rplidar driver
+	injectedRPlidarDriver := inject.NewRPLiDARDriver()
+
+	injectedRPlidarDriver.GrabScanDataHqFunc = func(a ...interface{}) uint {
+		return uint(gen.RESULT_OPERATION_FAIL)
+	}
+	injectedRPlidarDriver.AscendScanDataFunc = func(a ...interface{}) uint {
+		return 0
 	}
 
-	for _, tt := range cases {
-		t.Run(tt.description, func(t *testing.T) {
-			pc, err := tt.rp.scan(ctx, tt.scanCount)
-			if tt.expectedErr == nil {
-				test.That(t, err, test.ShouldBeNil)
-			} else {
-				test.That(t, err, test.ShouldNotBeNil)
-				test.That(t, err.Error(), test.ShouldContainSubstring, tt.expectedErr.Error())
-			}
-			test.That(t, pc, test.ShouldEqual, tt.expectedPointCloud)
-		})
+	injectedRplidarDevice := rplidarDevice{
+		driver: &injectedRPlidarDriver,
 	}
-}
 
-func TestScanArtifact(t *testing.T) {
-	ctx := context.Background()
+	// Create injected node
+	injectedNode := inject.NewRPLiDARNodes()
 
-	rp := GoodRplidarReturnsZeroPoints()
-	_, err := rp.scan(ctx, 1)
-	test.That(t, err, test.ShouldBeNil)
+	rp := &rplidar{
+		device: &injectedRplidarDevice,
+		nodes:  &injectedNode,
+	}
+
+	t.Run("invalid rplidar driver with zero scan count", func(t *testing.T) {
+		pc, err := rp.scan(ctx, 0)
+		test.That(t, err, test.ShouldBeNil)
+		test.That(t, pc, test.ShouldEqual, nil)
+	})
+
+	t.Run("invalid rplidar driver with non-zero scan count", func(t *testing.T) {
+		pc, err := rp.scan(ctx, 1)
+		test.That(t, err, test.ShouldNotBeNil)
+		test.That(t, err.Error(), test.ShouldContainSubstring, "bad scan")
+		test.That(t, pc, test.ShouldEqual, nil)
+	})
 }
 
 func TestNextPointCloud(t *testing.T) {

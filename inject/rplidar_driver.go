@@ -5,7 +5,7 @@ import (
 	"go.viam.com/rplidar/gen"
 )
 
-type RPlidarDriver struct {
+type rplidarDriver struct {
 	gen.RPlidarDriver
 
 	SwigcptrFunc            func() uintptr
@@ -47,217 +47,221 @@ type RPlidarDriver struct {
 	GetX_chanDevFunc func() (_swig_ret gen.ChannelDevice)
 }
 
-func (driver *RPlidarDriver) Swigcptr() uintptr {
+func NewRPLiDARDriver() rplidarDriver {
+	return rplidarDriver{}
+}
+
+func (driver *rplidarDriver) Swigcptr() uintptr {
 	if driver.SwigcptrFunc == nil {
 		return driver.RPlidarDriver.Swigcptr()
 	}
 	return driver.SwigcptrFunc()
 }
 
-func (driver *RPlidarDriver) SwigIsRPlidarDriver() {
+func (driver *rplidarDriver) SwigIsRPlidarDriver() {
 	if driver.SwigIsRPlidarDriverFunc == nil {
 		driver.RPlidarDriver.SwigIsRPlidarDriver()
 	}
 	driver.SwigIsRPlidarDriverFunc()
 }
 
-func (driver *RPlidarDriver) Connect(a ...interface{}) uint {
+func (driver *rplidarDriver) Connect(a ...interface{}) uint {
 	if driver.ConnectFunc == nil {
 		return driver.RPlidarDriver.Connect(a)
 	}
 	return driver.ConnectFunc(a)
 }
 
-func (driver *RPlidarDriver) Disconnect() {
+func (driver *rplidarDriver) Disconnect() {
 	if driver.DisconnectFunc == nil {
 		driver.RPlidarDriver.Disconnect()
 	}
 	driver.DisconnectFunc()
 }
 
-func (driver *RPlidarDriver) IsConnected() bool {
+func (driver *rplidarDriver) IsConnected() bool {
 	if driver.IsConnectedFunc == nil {
 		return driver.RPlidarDriver.IsConnected()
 	}
 	return driver.IsConnectedFunc()
 }
 
-func (driver *RPlidarDriver) Reset(a ...interface{}) uint {
+func (driver *rplidarDriver) Reset(a ...interface{}) uint {
 	if driver.ResetFunc == nil {
 		return driver.RPlidarDriver.Reset(a)
 	}
 	return driver.ResetFunc(a)
 }
 
-func (driver *RPlidarDriver) ClearNetSerialRxCache() uint {
+func (driver *rplidarDriver) ClearNetSerialRxCache() uint {
 	if driver.ClearNetSerialRxCacheFunc == nil {
 		return driver.RPlidarDriver.ClearNetSerialRxCache()
 	}
 	return driver.ClearNetSerialRxCacheFunc()
 }
 
-func (driver *RPlidarDriver) GetAllSupportedScanModes(a ...interface{}) uint {
+func (driver *rplidarDriver) GetAllSupportedScanModes(a ...interface{}) uint {
 	if driver.GetAllSupportedScanModesFunc == nil {
 		return driver.RPlidarDriver.GetAllSupportedScanModes(a)
 	}
 	return driver.GetAllSupportedScanModesFunc(a)
 }
 
-func (driver *RPlidarDriver) GetTypicalScanMode(a ...interface{}) uint {
+func (driver *rplidarDriver) GetTypicalScanMode(a ...interface{}) uint {
 	if driver.GetTypicalScanModeFunc == nil {
 		return driver.RPlidarDriver.GetTypicalScanMode(a)
 	}
 	return driver.GetTypicalScanModeFunc(a)
 }
 
-func (driver *RPlidarDriver) StartScan(a ...interface{}) uint {
+func (driver *rplidarDriver) StartScan(a ...interface{}) uint {
 	if driver.StartScanFunc == nil {
 		return driver.RPlidarDriver.StartScan(a)
 	}
 	return driver.StartScanFunc(a)
 }
 
-func (driver *RPlidarDriver) StartScanExpress(a ...interface{}) uint {
+func (driver *rplidarDriver) StartScanExpress(a ...interface{}) uint {
 	if driver.StartScanExpressFunc == nil {
 		return driver.RPlidarDriver.StartScanExpress(a)
 	}
 	return driver.StartScanExpressFunc(a)
 }
 
-func (driver *RPlidarDriver) GetHealth(a ...interface{}) uint {
+func (driver *rplidarDriver) GetHealth(a ...interface{}) uint {
 	if driver.GetHealthFunc == nil {
 		return driver.RPlidarDriver.GetHealth(a)
 	}
 	return driver.GetHealthFunc(a)
 }
 
-func (driver *RPlidarDriver) GetDeviceInfo(a ...interface{}) uint {
+func (driver *rplidarDriver) GetDeviceInfo(a ...interface{}) uint {
 	if driver.GetDeviceInfoFunc == nil {
 		return driver.RPlidarDriver.GetDeviceInfo(a)
 	}
 	return driver.GetDeviceInfoFunc(a)
 }
 
-func (driver *RPlidarDriver) GetSampleDuration_uS(a ...interface{}) uint {
+func (driver *rplidarDriver) GetSampleDuration_uS(a ...interface{}) uint {
 	if driver.GetSampleDuration_uSFunc == nil {
 		return driver.RPlidarDriver.GetSampleDuration_uS(a)
 	}
 	return driver.GetSampleDuration_uSFunc(a)
 }
 
-func (driver *RPlidarDriver) SetMotorPWM(arg2 uint16) uint {
+func (driver *rplidarDriver) SetMotorPWM(arg2 uint16) uint {
 	if driver.SetMotorPWMFunc == nil {
 		return driver.RPlidarDriver.SetMotorPWM(arg2)
 	}
 	return driver.SetMotorPWMFunc(arg2)
 }
 
-func (driver *RPlidarDriver) SetLidarSpinSpeed(a ...interface{}) uint {
+func (driver *rplidarDriver) SetLidarSpinSpeed(a ...interface{}) uint {
 	if driver.SetLidarSpinSpeedFunc == nil {
 		return driver.RPlidarDriver.SetLidarSpinSpeed(a)
 	}
 	return driver.SetLidarSpinSpeedFunc(a)
 }
 
-func (driver *RPlidarDriver) StartMotor() uint {
+func (driver *rplidarDriver) StartMotor() uint {
 	if driver.StartMotorFunc == nil {
 		return driver.RPlidarDriver.StartMotor()
 	}
 	return driver.StartMotorFunc()
 }
 
-func (driver *RPlidarDriver) StopMotor() uint {
+func (driver *rplidarDriver) StopMotor() uint {
 	if driver.StopMotorFunc == nil {
 		return driver.RPlidarDriver.StopMotor()
 	}
 	return driver.StopMotorFunc()
 }
 
-func (driver *RPlidarDriver) CheckMotorCtrlSupport(a ...interface{}) uint {
+func (driver *rplidarDriver) CheckMotorCtrlSupport(a ...interface{}) uint {
 	if driver.CheckMotorCtrlSupportFunc == nil {
 		return driver.RPlidarDriver.CheckMotorCtrlSupport(a)
 	}
 	return driver.CheckMotorCtrlSupportFunc(a)
 }
 
-func (driver *RPlidarDriver) CheckIfTofLidar(a ...interface{}) uint {
+func (driver *rplidarDriver) CheckIfTofLidar(a ...interface{}) uint {
 	if driver.CheckIfTofLidarFunc == nil {
 		return driver.RPlidarDriver.CheckIfTofLidar(a)
 	}
 	return driver.CheckIfTofLidarFunc(a)
 }
 
-func (driver *RPlidarDriver) GetFrequency(a ...interface{}) uint {
+func (driver *rplidarDriver) GetFrequency(a ...interface{}) uint {
 	if driver.GetFrequencyFunc == nil {
 		return driver.RPlidarDriver.GetFrequency(a)
 	}
 	return driver.GetFrequencyFunc(a)
 }
 
-func (driver *RPlidarDriver) StartScanNormal(a ...interface{}) uint {
+func (driver *rplidarDriver) StartScanNormal(a ...interface{}) uint {
 	if driver.StartScanNormalFunc == nil {
 		return driver.RPlidarDriver.StartScanNormal(a)
 	}
 	return driver.StartScanNormalFunc(a)
 }
 
-func (driver *RPlidarDriver) CheckExpressScanSupported(a ...interface{}) uint {
+func (driver *rplidarDriver) CheckExpressScanSupported(a ...interface{}) uint {
 	if driver.CheckExpressScanSupportedFunc == nil {
 		return driver.RPlidarDriver.CheckExpressScanSupported(a)
 	}
 	return driver.CheckExpressScanSupportedFunc(a)
 }
 
-func (driver *RPlidarDriver) Stop(a ...interface{}) uint {
+func (driver *rplidarDriver) Stop(a ...interface{}) uint {
 	if driver.StopFunc == nil {
 		return driver.RPlidarDriver.Stop(a)
 	}
 	return driver.StopFunc(a)
 }
 
-func (driver *RPlidarDriver) GrabScanData(a ...interface{}) uint {
+func (driver *rplidarDriver) GrabScanData(a ...interface{}) uint {
 	if driver.GrabScanDataFunc == nil {
 		return driver.RPlidarDriver.GrabScanData(a)
 	}
 	return driver.GrabScanDataFunc(a)
 }
 
-func (driver *RPlidarDriver) GrabScanDataHq(a ...interface{}) uint {
+func (driver *rplidarDriver) GrabScanDataHq(a ...interface{}) uint {
 	if driver.GrabScanDataHqFunc == nil {
 		return driver.RPlidarDriver.GrabScanDataHq(a)
 	}
 	return driver.GrabScanDataHqFunc(a)
 }
 
-func (driver *RPlidarDriver) AscendScanData(a ...interface{}) uint {
+func (driver *rplidarDriver) AscendScanData(a ...interface{}) uint {
 	if driver.AscendScanDataFunc == nil {
 		return driver.RPlidarDriver.AscendScanData(a)
 	}
 	return driver.AscendScanDataFunc(a)
 }
 
-func (driver *RPlidarDriver) GetScanDataWithInterval(arg2 gen.Rplidar_response_measurement_node_t, arg3 *int64) uint {
+func (driver *rplidarDriver) GetScanDataWithInterval(arg2 gen.Rplidar_response_measurement_node_t, arg3 *int64) uint {
 	if driver.GetScanDataWithIntervalFunc == nil {
 		return driver.RPlidarDriver.GetScanDataWithInterval(arg2, arg3)
 	}
 	return driver.GetScanDataWithIntervalFunc(arg2, arg3)
 }
 
-func (driver *RPlidarDriver) GetScanDataWithIntervalHq(arg2 gen.Rplidar_response_measurement_node_hq_t, arg3 *int64) uint {
+func (driver *rplidarDriver) GetScanDataWithIntervalHq(arg2 gen.Rplidar_response_measurement_node_hq_t, arg3 *int64) uint {
 	if driver.GetScanDataWithIntervalHqFunc == nil {
 		return driver.RPlidarDriver.GetScanDataWithIntervalHq(arg2, arg3)
 	}
 	return driver.GetScanDataWithIntervalHqFunc(arg2, arg3)
 }
 
-func (driver *RPlidarDriver) SetX_chanDev(arg2 gen.ChannelDevice) {
+func (driver *rplidarDriver) SetX_chanDev(arg2 gen.ChannelDevice) {
 	if driver.SetX_chanDevFunc == nil {
 		driver.RPlidarDriver.SetX_chanDev(arg2)
 	}
 	driver.SetX_chanDevFunc(arg2)
 }
 
-func (driver *RPlidarDriver) GetX_chanDev() gen.ChannelDevice {
+func (driver *rplidarDriver) GetX_chanDev() gen.ChannelDevice {
 	if driver.GetX_chanDevFunc == nil {
 		return driver.RPlidarDriver.GetX_chanDev()
 	}

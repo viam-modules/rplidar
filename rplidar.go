@@ -62,8 +62,6 @@ type rplidar struct {
 	cacheBackgroundWorkers sync.WaitGroup
 	cache                  *dataCache
 
-	testing bool
-
 	logger logging.Logger
 }
 
@@ -117,8 +115,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		cache:                  &dataCache{},
 		cacheBackgroundWorkers: sync.WaitGroup{},
 
-		testing: false,
-		logger:  logger,
+		logger: logger,
 	}
 
 	// Setup RPLiDAR
@@ -198,15 +195,7 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 
 		for pos := 0; pos < int(nodeCount); pos++ {
 
-			var node gen.Rplidar_response_measurement_node_hq_t
-			if !rp.testing {
-				node = gen.MeasurementNodeHqArray_getitem(rp.nodes, pos)
-			} else {
-				// Pass node through as gen.MeasurementNodeHqArray_getitem requires knowledge of allocated memory
-				// used by the C++ code.
-				// TODO: Implement logic to allow testing using artifact files
-				node = rp.nodes
-			}
+			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, pos)
 
 			if node.GetDist_mm_q2() == 0 {
 				dropCount++
