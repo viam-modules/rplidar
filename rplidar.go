@@ -114,8 +114,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 		cache:                  &dataCache{},
 		cacheBackgroundWorkers: sync.WaitGroup{},
-
-		logger: logger,
+		logger:                 logger,
 	}
 
 	// Setup RPLiDAR
