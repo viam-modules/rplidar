@@ -22,7 +22,7 @@ jobs:
       options: --platform ${{ matrix.platform }}
     timeout-minutes: 45
     steps:
-    # Now that viam-cartographer is public, can't directly comment without token having full read/write access
+    # Can't directly comment without token having full read/write access
     # appimage-comment.yml will trigger separately and post the actual comments
 
     - name: Set PR Number variable
@@ -59,6 +59,18 @@ jobs:
       run: |
         apt-get update
 
+    - name: make clean
+      run: |
+        sudo -u testbot bash -lc 'make clean'
+
+    - name: make setup
+      run: |
+        sudo -u testbot bash -lc 'make setup'
+
+    - name: make test
+      run: |
+        sudo -u testbot bash -lc 'make test'
+
     - name: Verify no uncommitted changes from make lint
       run: |
         git init
@@ -72,11 +84,3 @@ jobs:
             git status
             exit 1
         fi
-
-    - name: make setup
-      run: |
-        sudo -u testbot bash -lc 'make setup'
-
-    - name: make test
-      run: |
-        sudo -u testbot bash -lc 'make test'
