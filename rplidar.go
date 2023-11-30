@@ -119,6 +119,8 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	}
 
 	// Setup RPLiDAR
+	rp.cache.mutex.RLock()
+	defer rp.cache.mutex.RUnlock()
 	if err := rp.setupRPLidar(ctx); err != nil {
 		return nil, errors.Wrap(err, "there was a problem setting up the rplidar")
 	}
