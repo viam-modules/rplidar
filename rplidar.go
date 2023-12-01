@@ -54,13 +54,15 @@ type rplidar struct {
 	resource.Named
 	resource.AlwaysRebuild
 
-	device                 *rplidarDevice
-	nodes                  gen.Rplidar_response_measurement_node_hq_t
-	minRangeMM             float64
+	device     *rplidarDevice
+	nodes      gen.Rplidar_response_measurement_node_hq_t
+	minRangeMM float64
+
 	cancelFunc             func()
 	cacheBackgroundWorkers sync.WaitGroup
 	cache                  *dataCache
-	logger                 logging.Logger
+
+	logger logging.Logger
 }
 
 // Config describes how to configure the RPLiDAR component.
@@ -112,7 +114,8 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 
 		cache:                  &dataCache{},
 		cacheBackgroundWorkers: sync.WaitGroup{},
-		logger:                 logger,
+
+		logger: logger,
 	}
 
 	// Setup RPLiDAR
