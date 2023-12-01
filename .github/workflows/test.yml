@@ -55,13 +55,10 @@ jobs:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 2
 
-    - name: apt update
+    - name: Clean and Fix Permissions
       run: |
-        apt-get update
-
-    - name: make clean
-      run: |
-        sudo -u testbot bash -lc 'make clean'
+        chown testbot:testbot -R .
+        sudo -Hu testbot bash -lc 'make clean'
 
     - name: make setup
       run: |
