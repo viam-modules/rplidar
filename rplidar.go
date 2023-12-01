@@ -61,8 +61,7 @@ type rplidar struct {
 	cancelFunc             func()
 	cacheBackgroundWorkers sync.WaitGroup
 	cache                  *dataCache
-
-	logger logging.Logger
+	logger                 logging.Logger
 }
 
 // Config describes how to configure the RPLiDAR component.
