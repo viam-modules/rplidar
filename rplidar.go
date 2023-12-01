@@ -67,7 +67,7 @@ type rplidar struct {
 
 // Config describes how to configure the RPLiDAR component.
 type Config struct {
-	DevicePath string  `json:"device_path"`
+	SerialPath string  `json:"serial_path"`
 	MinRangeMM float64 `json:"min_range_mm"`
 }
 
@@ -91,7 +91,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		return nil, err
 	}
 
-	devicePath := svcConf.DevicePath
+	devicePath := svcConf.SerialPath
 	if devicePath == "" {
 		var err error
 		if devicePath, err = searchForDevicePath(logger); err != nil {
