@@ -4,8 +4,12 @@ package rplidar
 import (
 	"errors"
 	"fmt"
+	"sync"
 
+	"go.viam.com/rdk/logging"
 	"go.viam.com/rplidar/gen"
+
+	"go.viam.com/utils/usb"
 )
 
 type rplidarDevice struct {
@@ -14,9 +18,33 @@ type rplidarDevice struct {
 	serialNumber     string
 	firmwareVersion  string
 	hardwareRevision int
+	mutex            sync.Mutex
 }
 
-func getRplidarDevice(devicePath string) (rplidarDevice, error) {
+func searchForDevicePath(logger logging.Logger) (string, error) {
+	var usbInfo = &usb.Identifier{
+		Vendor:  0x10c4,
+		Product: 0xea60,
+	}
+
+	usbDevices := usb.Search(
+		usb.SearchFilter{},
+		func(vendorID, productID int) bool {
+			return vendorID == usbInfo.Vendor && productID == usbInfo.Product
+		})
+
+	if len(usbDevices) == 0 {
+		return "", errors.New("no usb devices found")
+	}
+
+	logger.Debugf("detected %d lidar devices", len(usbDevices))
+	for _, comp := range usbDevices {
+		logger.Debug(comp)
+	}
+	return usbDevices[0].Path, nil
+}
+
+func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 	var driver gen.RPlidarDriver
 	devInfo := gen.NewRplidar_response_device_info_t()
 	defer gen.DeleteRplidar_response_device_info_t(devInfo)
@@ -33,7 +61,7 @@ func getRplidarDevice(devicePath string) (rplidarDevice, error) {
 			continue
 		}
 
-		if result := possibleDriver.GetDeviceInfo(devInfo, defaultTimeout); Result(result) != ResultOk {
+		if result := possibleDriver.GetDeviceInfo(devInfo, defaultDeviceTimeoutMs); Result(result) != ResultOk {
 			r := Result(result)
 			if r == ResultOpTimeout {
 				continue
@@ -46,9 +74,9 @@ func getRplidarDevice(devicePath string) (rplidarDevice, error) {
 	}
 	if driver == nil {
 		if connectErr == nil {
-			return rplidarDevice{}, fmt.Errorf("timed out connecting to %q", devicePath)
+			return &rplidarDevice{}, fmt.Errorf("timed out connecting to %q", devicePath)
 		}
-		return rplidarDevice{}, connectErr
+		return nil, connectErr
 	}
 
 	serialNum := devInfo.GetSerialnum()
@@ -65,16 +93,16 @@ func getRplidarDevice(devicePath string) (rplidarDevice, error) {
 	healthInfo := gen.NewRplidar_response_device_health_t()
 	defer gen.DeleteRplidar_response_device_health_t(healthInfo)
 
-	if result := driver.GetHealth(healthInfo, defaultTimeout); Result(result) != ResultOk {
+	if result := driver.GetHealth(healthInfo, defaultDeviceTimeoutMs); Result(result) != ResultOk {
 		gen.RPlidarDriverDisposeDriver(driver)
 		driver = nil
-		return rplidarDevice{}, fmt.Errorf("failed to get health: %w", Result(result).Failed())
+		return nil, fmt.Errorf("failed to get health: %w", Result(result).Failed())
 	}
 
 	if int(healthInfo.GetStatus()) == gen.RPLIDAR_STATUS_ERROR {
 		gen.RPlidarDriverDisposeDriver(driver)
 		driver = nil
-		return rplidarDevice{}, errors.New("bad health")
+		return nil, errors.New("bad health")
 	}
 
 	rplidarDevice := &rplidarDevice{
@@ -85,5 +113,5 @@ func getRplidarDevice(devicePath string) (rplidarDevice, error) {
 		hardwareRevision: hardwareRev,
 	}
 
-	return *rplidarDevice, nil
+	return rplidarDevice, nil
 }

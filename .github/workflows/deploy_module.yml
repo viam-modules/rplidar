@@ -29,7 +29,7 @@ jobs:
     container:
       image: ${{ matrix.image }}
       options: --platform linux/${{ matrix.platform }}
-    timeout-minutes: 15
+    timeout-minutes: 30
     outputs:
       date: ${{ steps.build_date.outputs.date }}
 
@@ -73,7 +73,7 @@ jobs:
     - id: stripped-version
       run: echo version=${VERSION#v} >> $GITHUB_OUTPUT
     - uses: viamrobotics/upload-module@main
-      if: github.event_name == 'release'
+      if: github.event_name == 'release' && !contains(github.ref_name, 'rc')
       with:
         platform: linux/${{ matrix.platform }}
         version: ${{ steps.stripped-version.outputs.version }}
