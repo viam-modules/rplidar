@@ -15,7 +15,7 @@ To use this module, follow these instructions to [add a module from the Viam Reg
 
 The `rplidar` module is distributed as an AppImage.
 AppImages require FUSE version 2 to run.
-See [FUSE troubleshooting](/appendix/troubleshooting/#appimages-require-fuse-to-run) for instructions on installing FUSE 2 on your system if it is not already installed.
+See [FUSE troubleshooting](https://docs.viam.com/appendix/troubleshooting/#appimages-require-fuse-to-run) for instructions on installing FUSE 2 on your system if it is not already installed.
 
 Currently, the `rplidar` module supports the Linux platform only.
 
@@ -36,7 +36,7 @@ Check the **Logs** tab of your robot in the Viam app to make sure your RPlidar h
 
 No attributes are available for a `lidar:rplidar` camera.
 
-## Build & Run Locally
+## Build and Run locally
 
 If you don't want to load the model from the registry, you can install it locally. Follow these instructions to [configure a local module on your machine](https://docs.viam.com/registry/configure/#edit-the-configuration-of-a-local-module).
 
