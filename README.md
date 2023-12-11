@@ -38,7 +38,7 @@ No attributes are available for a `lidar:rplidar` camera.
 
 ## Build and Run locally
 
-If you don't want to load the model from the registry, you can install it locally. Follow these instructions to [configure a local module on your machine](https://docs.viam.com/registry/configure/#edit-the-configuration-of-a-local-module).
+If you don't want to load the model from the registry, for example because you are actively changing its functionality, you can install it locally. Follow these instructions to [configure a local module on your machine](https://docs.viam.com/registry/configure/#edit-the-configuration-of-a-local-module).
 
 1. Install the rplidar module:
    * OSx: 
