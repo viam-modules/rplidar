@@ -11,6 +11,14 @@ It has been tested on the following rplidars:
 
 To use this module, follow these instructions to [add a module from the Viam Registry](https://docs.viam.com/modular-resources/configure/#add-a-module-from-the-viam-registry) and select the `viam:lidar:rplidar` model from the [`rplidar` module](https://app.viam.com/module/viam/rplidar).
 
+### Requirements 
+
+The `rplidar` module is distributed as an AppImage.
+AppImages require FUSE version 2 to run.
+See [FUSE troubleshooting](https://docs.viam.com/appendix/troubleshooting/#appimages-require-fuse-to-run) for instructions on installing FUSE 2 on your system if it is not already installed.
+
+Currently, the `rplidar` module supports the Linux platform only.
+
 ## Configure your Rplidar
 
 > [!NOTE]  
@@ -21,11 +29,16 @@ Navigate to the **Config** tab of your robot’s page in [the Viam app](https://
 > [!NOTE]  
 > For more information, see [Configure a Robot](https://docs.viam.com/manage/configuration/).
 
+To save your changes, click **Save config** at the bottom of the page.
+Check the **Logs** tab of your robot in the Viam app to make sure your RPlidar has connected and no errors are being raised.
+
 ### Attributes
 
 No attributes are available for a `lidar:rplidar` camera.
 
-## Local installation
+## Build and Run locally
+
+If you don't want to load the model from the registry, for example because you are actively changing its functionality, you can install it locally. Follow these instructions to [configure a local module on your machine](https://docs.viam.com/registry/configure/#edit-the-configuration-of-a-local-module).
 
 1. Install the rplidar module:
    * OSx: 
