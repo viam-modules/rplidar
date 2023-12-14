@@ -2,7 +2,8 @@
     "modules": [
         {
             "name": "rplidar_module",
-            "executable_path": "/opt/homebrew/bin/rplidar-module"
+            "executable_path": "/opt/homebrew/bin/rplidar-module",
+            "type": "local"
         }
     ],
     "components": [
@@ -12,7 +13,7 @@
             "type": "camera",
             "model": "viam:lidar:rplidar",
             "attributes": {
-                "device_path": "/dev/tty.SLAB_USBtoUART"
+                "serial_path": "/dev/tty.SLAB_USBtoUART"
             }
         }
     ]
