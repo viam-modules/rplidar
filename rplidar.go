@@ -98,7 +98,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 			return nil, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
 		}
 	}
-	logger.Info("attempting to connect to device at path " + devicePath)
+	logger.Info("attempting to connect to device at serial_path: " + devicePath)
 
 	rplidarDevice, err := getRplidarDevice(devicePath)
 	if err != nil {
