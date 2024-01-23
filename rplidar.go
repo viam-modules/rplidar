@@ -308,7 +308,6 @@ func (rp *rplidar) Close(ctx context.Context) error {
 		rp.device.driver = nil
 	}
 
-	fmt.Println("closing out lock file for current process: ", rp.lockFilePath)
 	if err := os.Remove(rp.lockFilePath); err != nil {
 		return err
 	}
@@ -343,18 +342,14 @@ func checkLockFiles(devicePath string) (string, error) {
 	// Get rplidar related processes
 	rplidarProcesses := getRplidarProcesses()
 	currentProcess := rplidarProcesses[len(rplidarProcesses)-1]
-	fmt.Println("current process PID: ", currentProcess)
 	oldProcesses := rplidarProcesses[:len(rplidarProcesses)-1]
-	fmt.Println("past process PID: ", oldProcesses)
 
 	// Get rplidar related lock files
-	fmt.Println("Possible lock files:")
 	files, err := os.ReadDir(rplidarModuleLockDir)
 	var rplidarLockFiles []string
 	for _, file := range files {
 		if strings.Contains(file.Name(), "rplidar") {
 			rplidarLockFiles = append(rplidarLockFiles, file.Name())
-			fmt.Println("- ", file.Name())
 		}
 	}
 
@@ -365,9 +360,7 @@ func checkLockFiles(devicePath string) (string, error) {
 		for _, oldProc := range oldProcesses {
 			if strings.Contains(lockFileName, fmt.Sprintf("pid%v", oldProc)) {
 				matchFound = true
-				fmt.Println("\n found lock file for pid: ", oldProc)
 				if strings.Contains(lockFileName, fmt.Sprintf("dv%v", devicePath[devicePathPrefixOffset:])) {
-					fmt.Println("found lock file for device path: ", devicePath[devicePathPrefixOffset:])
 					return "", errors.Errorf("another rplidar-module process(s) using the same serial_path has been found, "+
 						"possibly from an incomplete closure of a previous session. To use this serial path again, kill "+
 						"the old process by running 'sudo kill -9 <PID>' (PID(s): %v)", oldProc)
@@ -377,7 +370,6 @@ func checkLockFiles(devicePath string) (string, error) {
 		}
 		// Remove lock files for processes that are not currently ongoing
 		if !matchFound {
-			fmt.Println("removing lock file as no ongoing process is related to it: ", lockFileName)
 			if err := os.Remove(rplidarModuleLockDir + lockFileName); err != nil {
 				return "", err
 			}
@@ -386,7 +378,6 @@ func checkLockFiles(devicePath string) (string, error) {
 
 	// Create lock file for current session
 	newLockFile := rplidarModuleLockDir + fmt.Sprintf(rplidarModuleLockFileName, currentProcess, devicePath[devicePathPrefixOffset:])
-	fmt.Println("creating lock file for current process: ", newLockFile)
 	f, err := os.Create(newLockFile)
 	if err != nil {
 		return "", err
