@@ -8,6 +8,7 @@ import (
 
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rplidar/gen"
+	rputils "go.viam.com/rplidar/utils"
 
 	"go.viam.com/utils/usb"
 )
@@ -82,7 +83,7 @@ func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 	serialNum := devInfo.GetSerialnum()
 	var serialNumStr string
 	for pos := 0; pos < 16; pos++ {
-		serialNumStr += fmt.Sprintf("%02X", gen.ByteArray_getitem(serialNum, pos))
+		serialNumStr += fmt.Sprintf("%02X", gen.ByteArray_getitem(serialNum, rputils.CastInt(pos)))
 	}
 
 	firmwareVer := fmt.Sprintf("%d.%02d",
