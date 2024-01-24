@@ -195,7 +195,8 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 
 		for pos := 0; pos < int(nodeCount); pos++ {
 
-			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, pos)
+			casted_pos := cast_int(pos)
+			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, casted_pos)
 
 			if node.GetDist_mm_q2() == 0 {
 				dropCount++

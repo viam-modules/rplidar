@@ -82,7 +82,7 @@ func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 	serialNum := devInfo.GetSerialnum()
 	var serialNumStr string
 	for pos := 0; pos < 16; pos++ {
-		serialNumStr += fmt.Sprintf("%02X", gen.ByteArray_getitem(serialNum, pos))
+		serialNumStr += fmt.Sprintf("%02X", gen.ByteArray_getitem(serialNum, cast_int(pos)))
 	}
 
 	firmwareVer := fmt.Sprintf("%d.%02d",
