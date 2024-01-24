@@ -308,8 +308,10 @@ func (rp *rplidar) Close(ctx context.Context) error {
 		rp.device.driver = nil
 	}
 
-	if err := os.Remove(rp.lockFilePath); err != nil {
-		return err
+	if _, err := os.Stat(rp.lockFilePath); err == nil {
+		if err := os.Remove(rp.lockFilePath); err != nil {
+			return err
+		}
 	}
 
 	return nil
