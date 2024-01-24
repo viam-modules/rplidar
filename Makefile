@@ -12,6 +12,9 @@ SHELL := /usr/bin/env bash
 default: setup build-module
 
 setup: install-dependencies
+ifneq (, $(shell which brew))
+	git apply darwin_patch/swig.patch
+endif
 
 install-dependencies:
 ifneq (, $(shell which brew))
