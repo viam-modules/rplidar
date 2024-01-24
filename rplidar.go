@@ -21,6 +21,7 @@ import (
 	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
+	rputils "go.viam.com/rplidar/utils"
 )
 
 const (
@@ -195,8 +196,7 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 
 		for pos := 0; pos < int(nodeCount); pos++ {
 
-			casted_pos := cast_int(pos)
-			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, casted_pos)
+			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, rputils.CastInt(pos))
 
 			if node.GetDist_mm_q2() == 0 {
 				dropCount++
