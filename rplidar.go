@@ -340,12 +340,18 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 func checkLockFiles(devicePath string) (string, error) {
 
 	// Get rplidar related processes
-	rplidarProcesses := getRplidarProcesses()
+	rplidarProcesses, err := getRplidarProcesses()
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting rplidar-module related processes")
+	}
 	currentProcess := rplidarProcesses[len(rplidarProcesses)-1]
 	oldProcesses := rplidarProcesses[:len(rplidarProcesses)-1]
 
 	// Get rplidar related lock files
 	files, err := os.ReadDir(rplidarModuleLockDir)
+	if err != nil {
+		return "", errors.Wrapf(err, "error reading lock file directory")
+	}
 	var rplidarLockFiles []string
 	for _, file := range files {
 		if strings.Contains(file.Name(), "rplidar") {
@@ -371,7 +377,7 @@ func checkLockFiles(devicePath string) (string, error) {
 		// Remove lock files for processes that are not currently ongoing
 		if !matchFound {
 			if err := os.Remove(rplidarModuleLockDir + lockFileName); err != nil {
-				return "", err
+				return "", errors.Wrapf(err, fmt.Sprintf("could not remove lock file %v", lockFileName))
 			}
 		}
 	}
@@ -380,16 +386,23 @@ func checkLockFiles(devicePath string) (string, error) {
 	newLockFile := rplidarModuleLockDir + fmt.Sprintf(rplidarModuleLockFileName, currentProcess, devicePath[devicePathPrefixOffset:])
 	f, err := os.Create(newLockFile)
 	if err != nil {
-		return "", err
+		return "", errors.Wrapf(err, "could not create lock file")
 	}
-	defer f.Close()
+
+	if err = f.Close(); err != nil {
+		return "", errors.Wrapf(err, "could not close lock file")
+	}
 
 	return newLockFile, nil
 }
 
 // getRplidarProcesses returns the PIDs of the rplidar-module processes
-func getRplidarProcesses() []int {
-	allProcesses, _ := ps.Processes()
+func getRplidarProcesses() ([]int, error) {
+	allProcesses, err := ps.Processes()
+	if err != nil {
+		return nil, err
+	}
+
 	var rplidarProcesses []int
 	for _, p := range allProcesses {
 		if p.Executable() == "rplidar-module" {
@@ -399,5 +412,5 @@ func getRplidarProcesses() []int {
 
 	sort.Ints(rplidarProcesses)
 
-	return rplidarProcesses
+	return rplidarProcesses, nil
 }
