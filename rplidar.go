@@ -4,10 +4,15 @@ package rplidar
 import (
 	"context"
 	"fmt"
+	"os"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
 	"go.viam.com/rplidar/gen"
+
+	ps "github.com/mitchellh/go-ps"
 
 	goutils "go.viam.com/utils"
 
@@ -35,6 +40,10 @@ const (
 	defaultNodeSize = 8192
 	// The amount of time to wait after the motor start before scanning can begin.
 	defaultWarmUpTimeout = time.Second
+
+	rplidarModuleLockDir      = "/tmp/"
+	rplidarModuleLockFileName = "rplidar_pid%v_dv%v.lock"
+	devicePathPrefixOffset    = len(`\dev\`)
 )
 
 var (
@@ -55,9 +64,10 @@ type rplidar struct {
 	resource.Named
 	resource.AlwaysRebuild
 
-	device     *rplidarDevice
-	nodes      gen.Rplidar_response_measurement_node_hq_t
-	minRangeMM float64
+	lockFilePath string
+	device       *rplidarDevice
+	nodes        gen.Rplidar_response_measurement_node_hq_t
+	minRangeMM   float64
 
 	cancelFunc             func()
 	cacheBackgroundWorkers sync.WaitGroup
@@ -99,6 +109,13 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 			return nil, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
 		}
 	}
+
+	// Check lock file for conflicting processes
+	lockFilePath, err := checkLockFiles(devicePath)
+	if err != nil {
+		return nil, err
+	}
+
 	logger.Info("attempting to connect to device at serial_path: " + devicePath)
 
 	rplidarDevice, err := getRplidarDevice(devicePath)
@@ -109,9 +126,10 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	logger.Info("found and connected to an " + rplidarModelByteMap[rplidarDevice.model] + " rplidar")
 
 	rp := &rplidar{
-		Named:      c.ResourceName().AsNamed(),
-		device:     rplidarDevice,
-		minRangeMM: svcConf.MinRangeMM,
+		Named:        c.ResourceName().AsNamed(),
+		device:       rplidarDevice,
+		lockFilePath: lockFilePath,
+		minRangeMM:   svcConf.MinRangeMM,
 
 		cache:                  &dataCache{},
 		cacheBackgroundWorkers: sync.WaitGroup{},
@@ -290,6 +308,12 @@ func (rp *rplidar) Close(ctx context.Context) error {
 		rp.device.driver = nil
 	}
 
+	if _, err := os.Stat(rp.lockFilePath); err == nil {
+		if err := os.Remove(rp.lockFilePath); err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -311,4 +335,84 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	d.SetIntensity(uint16(reflectivity) * 255)
 
 	return pos, d
+}
+
+// checkLockFiles compares the current process and device_path to rplidar.lock files to see if any ongoing
+// sessions for that device path still exist
+func checkLockFiles(devicePath string) (string, error) {
+
+	// Get rplidar related processes
+	rplidarProcesses, err := getRplidarProcesses()
+	if err != nil {
+		return "", errors.Wrapf(err, "error getting rplidar-module related processes")
+	}
+	currentProcess := rplidarProcesses[len(rplidarProcesses)-1]
+	oldProcesses := rplidarProcesses[:len(rplidarProcesses)-1]
+
+	// Get rplidar related lock files
+	files, err := os.ReadDir(rplidarModuleLockDir)
+	if err != nil {
+		return "", errors.Wrapf(err, "error reading lock file directory")
+	}
+	var rplidarLockFiles []string
+	for _, file := range files {
+		if strings.Contains(file.Name(), "rplidar") {
+			rplidarLockFiles = append(rplidarLockFiles, file.Name())
+		}
+	}
+
+	// Look through lock files for those relating to active processes + given device path; if a lock file refers to
+	// a no longer active process, delete it
+	for _, lockFileName := range rplidarLockFiles {
+		var matchFound bool
+		for _, oldProc := range oldProcesses {
+			if strings.Contains(lockFileName, fmt.Sprintf("pid%v", oldProc)) {
+				matchFound = true
+				if strings.Contains(lockFileName, fmt.Sprintf("dv%v", devicePath[devicePathPrefixOffset:])) {
+					return "", errors.Errorf("another rplidar-module process using the same serial_path has been found, "+
+						"possibly from an incomplete closure of a previous session. To use this serial path again, kill "+
+						"the old process by running 'sudo kill -9 <PID>' (PID(s): %v)", oldProc)
+				}
+
+			}
+		}
+		// Remove lock files for processes that are not currently ongoing
+		if !matchFound {
+			if err := os.Remove(rplidarModuleLockDir + lockFileName); err != nil {
+				return "", errors.Wrapf(err, fmt.Sprintf("could not remove lock file %v", lockFileName))
+			}
+		}
+	}
+
+	// Create lock file for current session
+	newLockFile := rplidarModuleLockDir + fmt.Sprintf(rplidarModuleLockFileName, currentProcess, devicePath[devicePathPrefixOffset:])
+	f, err := os.Create(newLockFile)
+	if err != nil {
+		return "", errors.Wrapf(err, "could not create lock file")
+	}
+
+	if err = f.Close(); err != nil {
+		return "", errors.Wrapf(err, "could not close lock file")
+	}
+
+	return newLockFile, nil
+}
+
+// getRplidarProcesses returns the PIDs of the rplidar-module processes
+func getRplidarProcesses() ([]int, error) {
+	allProcesses, err := ps.Processes()
+	if err != nil {
+		return nil, err
+	}
+
+	var rplidarProcesses []int
+	for _, p := range allProcesses {
+		if p.Executable() == "rplidar-module" {
+			rplidarProcesses = append(rplidarProcesses, p.Pid())
+		}
+	}
+
+	sort.Ints(rplidarProcesses)
+
+	return rplidarProcesses, nil
 }
