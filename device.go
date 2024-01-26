@@ -83,11 +83,7 @@ func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 	serialNum := devInfo.GetSerialnum()
 	var serialNumStr string
 	for pos := 0; pos < 16; pos++ {
-<<<<<<< HEAD
 		serialNumStr += fmt.Sprintf("%02X", gen.ByteArray_getitem(serialNum, rputils.CastInt(pos)))
-=======
-		serialNumStr += fmt.Sprintf("%02X", gen.ByteArray_getitem(serialNum, pos))
->>>>>>> c4a19d1 (remove int64 fix for mac)
 	}
 
 	firmwareVer := fmt.Sprintf("%d.%02d",
