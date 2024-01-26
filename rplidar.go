@@ -361,7 +361,7 @@ func checkLockFiles(devicePath string) (string, error) {
 		}
 	}
 
-	// Look through lock fils for those relating to active processes + given device path, if a lock file refers to
+	// Look through lock files for those relating to active processes + given device path; if a lock file refers to
 	// a no longer active process, delete it
 	for _, lockFileName := range rplidarLockFiles {
 		var matchFound bool
@@ -369,7 +369,7 @@ func checkLockFiles(devicePath string) (string, error) {
 			if strings.Contains(lockFileName, fmt.Sprintf("pid%v", oldProc)) {
 				matchFound = true
 				if strings.Contains(lockFileName, fmt.Sprintf("dv%v", devicePath[devicePathPrefixOffset:])) {
-					return "", errors.Errorf("another rplidar-module process(s) using the same serial_path has been found, "+
+					return "", errors.Errorf("another rplidar-module process using the same serial_path has been found, "+
 						"possibly from an incomplete closure of a previous session. To use this serial path again, kill "+
 						"the old process by running 'sudo kill -9 <PID>' (PID(s): %v)", oldProc)
 				}
