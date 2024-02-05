@@ -118,7 +118,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		return nil, err
 	}
 
-	// Attempt top setup initial connection to rplidar
+	// Attempt to connect to rplidar
 	logger.Info("attempting to connect to device at serial_path: " + devicePath)
 
 	rplidarDevice, err := getRplidarDevice(devicePath)
@@ -129,14 +129,14 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	rplidarModel := rplidarModelByteMap[rplidarDevice.model]
 	logger.Info("found and connected to an " + rplidarModel + " rplidar")
 
-	// Check capture frequency
+	// Check configured capture frequency
 	captureFreqHz, err := getCaptureFrequencyHzFromConfig(c)
 	if err != nil {
 		return nil, err
 	}
 
 	if captureFreqHz > maxScanningFrequencyByModel[rplidarModel] {
-		return nil, errors.Errorf("set capture frequency (%v) is greater than max frequency (%v) for rplidar %v",
+		return nil, errors.Errorf("configured capture frequency (%v) is greater than max frequency (%v) for rplidar %v",
 			captureFreqHz,
 			maxScanningFrequencyByModel[rplidarModel],
 			rplidarModel)
@@ -434,6 +434,7 @@ func getRplidarProcesses() ([]int, error) {
 	return rplidarProcesses, nil
 }
 
+// getCaptureFrequencyHzFromConfig extract the capture_frequency_hz from the rplidar resource config
 func getCaptureFrequencyHzFromConfig(c resource.Config) (float64, error) {
 	var captureFreqHz float64
 	var captureMethodFound bool
