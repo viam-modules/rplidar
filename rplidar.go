@@ -51,6 +51,8 @@ var (
 	Model = resource.NewModel("viam", "lidar", "rplidar")
 	// rplidarModelByteMap maps the byte model representation to a string representation
 	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
+	// The max capture frequency for rplidar models based on datasheets
+	maxScanningFrequencyByModel = map[string]float64{"A1": 10, "A3": 15, "S1": 15}
 )
 
 // dataCache stores pointcloud data returned from the RPLiDAR for later access. This data is under mutex protection.
@@ -116,6 +118,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		return nil, err
 	}
 
+	// Attempt top setup initial connection to rplidar
 	logger.Info("attempting to connect to device at serial_path: " + devicePath)
 
 	rplidarDevice, err := getRplidarDevice(devicePath)
@@ -123,7 +126,21 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		return nil, err
 	}
 
-	logger.Info("found and connected to an " + rplidarModelByteMap[rplidarDevice.model] + " rplidar")
+	rplidarModel := rplidarModelByteMap[rplidarDevice.model]
+	logger.Info("found and connected to an " + rplidarModel + " rplidar")
+
+	// Check capture frequency
+	captureFreqHz, err := getCaptureFrequencyHzFromConfig(c)
+	if err != nil {
+		return nil, err
+	}
+
+	if captureFreqHz > maxScanningFrequencyByModel[rplidarModel] {
+		return nil, errors.Errorf("set capture frequency (%v) is greater than max frequency (%v) for rplidar %v",
+			captureFreqHz,
+			maxScanningFrequencyByModel[rplidarModel],
+			rplidarModel)
+	}
 
 	rp := &rplidar{
 		Named:        c.ResourceName().AsNamed(),
@@ -415,4 +432,28 @@ func getRplidarProcesses() ([]int, error) {
 	sort.Ints(rplidarProcesses)
 
 	return rplidarProcesses, nil
+}
+
+func getCaptureFrequencyHzFromConfig(c resource.Config) (float64, error) {
+	var captureFreqHz float64
+	var captureMethodFound bool
+
+	for _, assocResourceCfg := range c.AssociatedResourceConfigs {
+		captureMethodsMapInterface := assocResourceCfg.Attributes["capture_methods"]
+		if captureMethodsMapInterface != nil {
+			captureMethodFound = true
+			for _, captureMethodsInterface := range captureMethodsMapInterface.([]interface{}) {
+				captureMethods := captureMethodsInterface.(map[string]interface{})
+				if captureMethods["method"].(string) == "NextPointCloud" {
+					captureFreqHz = captureMethods["capture_frequency_hz"].(float64)
+				}
+			}
+		}
+	}
+
+	if captureMethodFound && captureFreqHz <= 0. {
+		return 0.0, errors.New("zero or negative capture frequency")
+	}
+
+	return captureFreqHz, nil
 }
