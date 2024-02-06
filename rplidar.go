@@ -30,6 +30,8 @@ import (
 )
 
 // RPLiDARModel represents the model of rplidar being used
+//
+//nolint:golint
 type RPLiDARModel int64
 
 const (
@@ -48,9 +50,11 @@ const (
 	rplidarModuleLockFileName = "rplidar_pid%v_dv%v.lock"
 	devicePathPrefixOffset    = len(`\dev\`)
 
-	// All currently supported RPlidar models
+	// A1 rplidar model
 	A1 RPLiDARModel = iota
+	// A3 rplidar model
 	A3
+	// S1 rplidar model
 	S1
 )
 
