@@ -29,6 +29,9 @@ import (
 	rputils "go.viam.com/rplidar/utils"
 )
 
+// RPLiDARModel represents the model of rplidar being used
+type RPLiDARModel int64
+
 const (
 	// The max time in milliseconds it should take for the RPlidar to get scan data.
 	defaultDeviceTimeoutMs = uint(1000)
@@ -44,16 +47,35 @@ const (
 	rplidarModuleLockDir      = "/tmp/"
 	rplidarModuleLockFileName = "rplidar_pid%v_dv%v.lock"
 	devicePathPrefixOffset    = len(`\dev\`)
+
+	// All currently supported RPlidar models
+	A1 RPLiDARModel = iota
+	A3
+	S1
 )
 
 var (
 	// Model is the model of the RPLiDAR
 	Model = resource.NewModel("viam", "lidar", "rplidar")
 	// rplidarModelByteMap maps the byte model representation to a string representation
-	rplidarModelByteMap = map[byte]string{24: "A1", 49: "A3", 97: "S1"}
-	// The max capture frequency for rplidar models based on datasheets
-	maxScanningFrequencyByModel = map[string]float64{"A1": 10, "A3": 15, "S1": 15}
+	rplidarModelByteMap = map[byte]RPLiDARModel{24: A1, 49: A3, 97: S1}
+	// The max capture frequency for rplidar models, based on their datasheets
+	maxScanningFrequencyByModel = map[RPLiDARModel]float64{A1: 10, A3: 15, S1: 15}
 )
+
+// modelToString converted the RPLiDARModel to a string
+func modelToString(model RPLiDARModel) string {
+	switch model {
+	case A1:
+		return "A1"
+	case A3:
+		return "A3"
+	case S1:
+		return "S1"
+	default:
+	}
+	return "unsupported model"
+}
 
 // dataCache stores pointcloud data returned from the RPLiDAR for later access. This data is under mutex protection.
 type dataCache struct {
@@ -127,7 +149,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	}
 
 	rplidarModel := rplidarModelByteMap[rplidarDevice.model]
-	logger.Info("found and connected to an " + rplidarModel + " rplidar")
+	logger.Info("found and connected to an " + modelToString(rplidarModel) + " rplidar")
 
 	// Check configured capture frequency
 	captureFreqHz, err := getCaptureFrequencyHzFromConfig(c)
@@ -176,7 +198,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 // user is valid.
 func (rp *rplidar) setupRPLidar(ctx context.Context) error {
 	// Note: S1 RPLiDARs do not need to start the motor before scanning can begin
-	if rplidarModelByteMap[rp.device.model] != "S1" {
+	if rplidarModelByteMap[rp.device.model] != S1 {
 		rp.logger.Debug("starting motor")
 		rp.device.driver.StartMotor()
 	}
@@ -316,7 +338,7 @@ func (rp *rplidar) Close(ctx context.Context) error {
 		rp.device.driver.Stop()
 		// Stop the motor
 		// Note: S1 RPLiDAR do not require the motor to be stopped during closeout
-		if rplidarModelByteMap[rp.device.model] != "S1" {
+		if rplidarModelByteMap[rp.device.model] != S1 {
 			rp.logger.Debug("stopping motor")
 			rp.device.driver.StopMotor()
 		}
@@ -440,8 +462,7 @@ func getCaptureFrequencyHzFromConfig(c resource.Config) (float64, error) {
 	var captureMethodFound bool
 
 	for _, assocResourceCfg := range c.AssociatedResourceConfigs {
-		captureMethodsMapInterface := assocResourceCfg.Attributes["capture_methods"]
-		if captureMethodsMapInterface != nil {
+		if captureMethodsMapInterface := assocResourceCfg.Attributes["capture_methods"]; captureMethodsMapInterface != nil {
 			captureMethodFound = true
 			for _, captureMethodsInterface := range captureMethodsMapInterface.([]interface{}) {
 				captureMethods := captureMethodsInterface.(map[string]interface{})
