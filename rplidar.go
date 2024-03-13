@@ -36,15 +36,15 @@ type RPLiDARModel int64
 
 const (
 	// The max time in milliseconds it should take for the RPlidar to get scan data.
-	defaultDeviceTimeoutMs = uint(1000)
+	defaultDeviceTimeoutMs = uint(1000 * 3)
 	// The number of full 360 scans to complete before returning a point cloud.
 	defaultNumScans = 1
 	// The number of scans to discard at startup to ensure valid data is returned to the user.
-	defaultWarmupNumDiscardedScans = 5
+	defaultWarmupNumDiscardedScans = 5 * 3
 	// The number of max nodes or data points returned in each scan.
 	defaultNodeSize = 8192
 	// The amount of time to wait after the motor start before scanning can begin.
-	defaultWarmUpTimeout = time.Second
+	defaultWarmUpTimeout = time.Second * 3
 
 	rplidarModuleLockDir      = "/tmp/"
 	rplidarModuleLockFileName = "rplidar_pid%v_dv%v.lock"
@@ -134,7 +134,7 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 	if devicePath == "" {
 		var err error
 		if devicePath, err = searchForDevicePath(logger); err != nil {
-			return nil, errors.Wrap(err, "need to specify a devicePath (ex. /dev/ttyUSB0)")
+			return nil, errors.Wrap(err, "need to specify a serial path (ex. \"serial_path\": \"/dev/ttyUSB0)\"")
 		}
 	}
 
@@ -257,7 +257,7 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 
 		for pos := 0; pos < int(nodeCount); pos++ {
 
-			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, rputils.CastInt(pos))
+			node := gen.MeasurementNodeHqArray_getitem(rp.nodes, int(rputils.CastInt(pos)))
 
 			if node.GetDist_mm_q2() == 0 {
 				dropCount++
@@ -380,7 +380,7 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	return pos, d
 }
 
-// checkLockFiles compares the current process and device_path to rplidar.lock files to see if any ongoing
+// checkLockFiles compares the current process and serial_path to rplidar.lock files to see if any ongoing
 // sessions for that device path still exist
 func checkLockFiles(devicePath string) (string, error) {
 
