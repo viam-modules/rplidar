@@ -60,7 +60,7 @@ const (
 
 var (
 	// Model is the model of the RPLiDAR
-	Model = resource.NewModel("viam", "lidar", "rplidar")
+	Model = resource.NewModel("kats-org", "lidar", "rplidar")
 	// rplidarModelByteMap maps the byte model representation to a string representation
 	rplidarModelByteMap = map[byte]RPLiDARModel{24: A1, 49: A3, 97: S1}
 	// The max capture frequency for rplidar models, based on their datasheets
