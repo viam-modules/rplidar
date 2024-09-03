@@ -15,9 +15,6 @@ on:
       release_type:
         required: true
         type: string
-    secrets:
-      GCP_CREDENTIALS:
-        required: true
 
 jobs:
   appimage:

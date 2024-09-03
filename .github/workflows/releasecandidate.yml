@@ -21,5 +21,3 @@ jobs:
     uses: viam-modules/rplidar/.github/workflows/appimage.yml@main
     with:
       release_type: 'rc'
-    secrets:
-      GCP_CREDENTIALS: ${{ secrets.GCP_CREDENTIALS }}
