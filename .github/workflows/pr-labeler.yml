@@ -21,14 +21,14 @@ jobs:
           script: |
             let prNumber = context.payload.pull_request && context.payload.pull_request.number;
             try {
-              await github.rest.issues.removeLabel({owner: "viamrobotics", repo: "rplidar", issue_number: prNumber, name: "safe to test"});
+              await github.rest.issues.removeLabel({owner: "viam-modules", repo: "rplidar", issue_number: prNumber, name: "safe to test"});
             } catch (err) {
               core.info(`Non-fatal error ${err}, while trying to remove 'safe to test' label.`);
             }
-            let orgResp = await github.rest.orgs.checkMembershipForUser({org: "viamrobotics", username: context.payload.sender.login});
+            let orgResp = await github.rest.orgs.checkMembershipForUser({org: "viam-modules", username: context.payload.sender.login});
             if (orgResp.status === 204) {
               // order of labeling events must be preserved, so two seperate calls
-              await github.rest.issues.addLabels({owner: "viamrobotics", repo: "rplidar", issue_number: prNumber, labels: ["safe to test"]});
+              await github.rest.issues.addLabels({owner: "viam-modules", repo: "rplidar", issue_number: prNumber, labels: ["safe to test"]});
               return true;
             }
             return false;

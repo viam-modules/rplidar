@@ -20,10 +20,10 @@ jobs:
       matrix:
         include:
           - arch: [buildjet-8vcpu-ubuntu-2204]
-            image: ghcr.io/viamrobotics/canon:amd64-cache
+            image: ghcr.io/viam-modules/canon:amd64-cache
             platform: amd64
           - arch: [buildjet-2vcpu-ubuntu-2204-arm]
-            image: ghcr.io/viamrobotics/canon:arm64-cache
+            image: ghcr.io/viam-modules/canon:arm64-cache
             platform: arm64
     runs-on: ${{ matrix.arch }}
     container:
@@ -72,7 +72,7 @@ jobs:
         name: appimage-${{ matrix.platform }}
     - id: stripped-version
       run: echo version=${VERSION#v} >> $GITHUB_OUTPUT
-    - uses: viamrobotics/upload-module@main
+    - uses: viam-modules/upload-module@main
       if: github.event_name == 'release' && !contains(github.ref_name, 'rc')
       with:
         platform: linux/${{ matrix.platform }}
