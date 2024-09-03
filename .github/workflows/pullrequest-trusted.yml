@@ -1,6 +1,10 @@
 
 name: Pull Request Update
 
+permissions:
+  id-token: write
+  contents: read
+
 concurrency: 
   group: pullrequest-${{ github.head_ref }}
   cancel-in-progress: true
