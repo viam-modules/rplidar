@@ -15,7 +15,7 @@ jobs:
     if: github.repository_owner == 'viam-modules'
     runs-on: [self-hosted, x64]
     container:
-      image: ghcr.io/viam-modules/canon:amd64
+      image: ghcr.io/viamrobotics/rdk-devenv/canon:amd64
     timeout-minutes: 10
 
     steps:

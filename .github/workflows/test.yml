@@ -11,10 +11,10 @@ jobs:
       matrix:
         include:
           - arch: buildjet-8vcpu-ubuntu-2204
-            image: ghcr.io/viam-modules/canon:amd64-cache
+            image: ghcr.io/viamrobotics/rdk-devenv/canon:amd64-cache
             platform: linux/amd64
           - arch: buildjet-8vcpu-ubuntu-2204-arm
-            image: ghcr.io/viam-modules/canon:arm64-cache
+            image: ghcr.io/viamrobotics/rdk-devenv/canon:arm64-cache
             platform: linux/arm64
     runs-on: ${{ matrix.arch }}
     container:

@@ -46,10 +46,10 @@ yesterday() {
 
 for TAG in amd64 arm64 amd64-cache arm64-cache
 do
-	TIMESTAMP=$(date_to_seconds `docker inspect -f '{{ .Created }}' ghcr.io/viam-modules/canon:$TAG` )
+	TIMESTAMP=$(date_to_seconds `docker inspect -f '{{ .Created }}' ghcr.io/viamrobotics/rdk-devenv/canon:$TAG` )
 	if ( [[ $TAG =~ -cache$ ]] && [ $TIMESTAMP -lt $(yesterday) ] ) || [ $TIMESTAMP -lt $(date_to_seconds $MIN_DATE) ]
 	then
 		# Always "succeed" in case network is down
-		docker pull ghcr.io/viam-modules/canon:$TAG || true
+		docker pull ghcr.io/viamrobotics/rdk-devenv/canon:$TAG || true
 	fi
 done
