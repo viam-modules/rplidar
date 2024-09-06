@@ -8,7 +8,7 @@ concurrency:
 on:
   pull_request_target:
     branches: [ 'main' ]
-    types: [ 'labeled' ]
+    types: [ 'opened', 'synchronize', 'reopened', 'labeled' ]
 
 # To test workflow updates you need to work in a branch directly on viam-modules/rplidar
 # and tag your working branch instead of @main in any viam-modules/rplidar "uses" below.
@@ -16,8 +16,7 @@ on:
 
 jobs:
   test:
-    if: github.event.label.name == 'safe to test' || 
-      contains(github.event.pull_request.labels.*.name, 'appimage') || 
+    if: contains(github.event.pull_request.labels.*.name, 'appimage') || 
       contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests')
     uses: viam-modules/rplidar/.github/workflows/test.yml@main
 
@@ -25,7 +24,7 @@ jobs:
   appimage:
     needs: [test]
     if: |
-      always() && !cancelled() && contains(github.event.pull_request.labels.*.name, 'safe to test') &&
+      always() && !cancelled() &&
       !contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests') &&
       contains(github.event.pull_request.labels.*.name, 'appimage') && needs.test.result == 'success'
     uses: viam-modules/rplidar/.github/workflows/appimage.yml@main
@@ -34,7 +33,7 @@ jobs:
 
   appimage-ignore-tests:
     if: |
-       always() && !cancelled() && contains(github.event.pull_request.labels.*.name, 'safe to test') &&
+       always() && !cancelled() &&
        contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests')
     uses: viam-modules/rplidar/.github/workflows/appimage.yml@main
     with:
