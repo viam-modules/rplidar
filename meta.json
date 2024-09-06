@@ -1,7 +1,7 @@
 {
   "module_id": "viam:rplidar",
   "visibility": "public",
-  "url": "https://github.com/viamrobotics/rplidar",
+  "url": "https://github.com/viam-modules/rplidar",
   "description": "Go module for RPLIDAR",
   "models": [
     {
