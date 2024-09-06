@@ -72,7 +72,7 @@ jobs:
         name: appimage-${{ matrix.platform }}
     - id: stripped-version
       run: echo version=${VERSION#v} >> $GITHUB_OUTPUT
-    - uses: viam-modules/upload-module@main
+    - uses: viamrobotics/upload-module@main
       if: github.event_name == 'release' && !contains(github.ref_name, 'rc')
       with:
         platform: linux/${{ matrix.platform }}
