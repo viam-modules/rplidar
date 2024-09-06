@@ -12,10 +12,10 @@ on:
 jobs:
   bump-versions:
     name: Bump Package Versions
-    if: github.repository_owner == 'viamrobotics'
+    if: github.repository_owner == 'viam-modules'
     runs-on: [self-hosted, x64]
     container:
-      image: ghcr.io/viamrobotics/canon:amd64
+      image: ghcr.io/viamrobotics/rdk-devenv:amd64
     timeout-minutes: 10
 
     steps:

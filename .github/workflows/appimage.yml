@@ -1,5 +1,9 @@
 name: Build AppImage
 
+permissions:
+  id-token: write
+  contents: read
+
 on:
   workflow_dispatch:
     inputs:
@@ -12,7 +16,9 @@ on:
         required: true
         type: string
     secrets:
-      GCP_CREDENTIALS:
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      GCP_SERVICE_ACCOUNT:
         required: true
 
 jobs:
@@ -23,10 +29,10 @@ jobs:
       matrix:
         include:
           - arch: [buildjet-8vcpu-ubuntu-2204]
-            image: ghcr.io/viamrobotics/canon:amd64-cache
+            image: ghcr.io/viamrobotics/rdk-devenv:amd64-cache
             platform: linux/amd64
           - arch: [buildjet-2vcpu-ubuntu-2204-arm]
-            image: ghcr.io/viamrobotics/canon:arm64-cache
+            image: ghcr.io/viamrobotics/rdk-devenv:arm64-cache
             platform: linux/arm64
     runs-on: ${{ matrix.arch }}
     container:
@@ -55,10 +61,13 @@ jobs:
           chown testbot:testbot -R .
           sudo -Hu testbot bash -lc 'make clean'
 
-      - name: Authorize GCP Upload
-        uses: google-github-actions/auth@v1
+      - id: 'auth'
+        name: 'Authenticate to Google Cloud'
+        uses: 'google-github-actions/auth@v1'
         with:
-          credentials_json: '${{ secrets.GCP_CREDENTIALS }}'
+          create_credentials_file: true
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
       - name: Make Setup
         run: |
