@@ -1,5 +1,9 @@
 name: Build and Publish Stable
 
+permissions:
+  id-token: write
+  contents: read
+
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
 
@@ -17,6 +21,8 @@ jobs:
     uses: viam-modules/rplidar/.github/workflows/appimage.yml@main
     with:
       release_type: 'stable'
+      workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+      service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
 
   slack-workflow-status:
     if: ${{ failure() }}
