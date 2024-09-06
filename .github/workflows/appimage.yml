@@ -15,6 +15,11 @@ on:
       release_type:
         required: true
         type: string
+    secrets:
+      GCP_WORKLOAD_IDENTITY_PROVIDER:
+        required: true
+      GCP_SERVICE_ACCOUNT:
+        required: true
 
 jobs:
   appimage:
