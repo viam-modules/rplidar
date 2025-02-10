@@ -6,7 +6,9 @@
   "models": [
     {
       "api": "rdk:component:camera",
-      "model": "viam:lidar:rplidar"
+      "model": "viam:lidar:rplidar",
+      "markdown_link": "README.md#configure-your-rplidar",
+      "short_description": "camera model for the RPLidar."
     }
   ],
   "entrypoint": "rplidar-module.AppImage"
