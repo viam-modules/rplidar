@@ -19,11 +19,9 @@ import (
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
 	"go.viam.com/rdk/components/camera"
-	"go.viam.com/rdk/gostream"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
 	rputils "go.viam.com/rplidar/utils"
@@ -309,14 +307,9 @@ func (rp *rplidar) Properties(ctx context.Context) (camera.Properties, error) {
 	return props, nil
 }
 
-// Projector is a part of the Camera interface but is not implemented for the RPLiDAR.
-func (rp *rplidar) Projector(ctx context.Context) (transform.Projector, error) {
-	return nil, errors.New("projector unimplemented")
-}
-
-// Stream is a part of the Camera interface but is not implemented for the RPLiDAR.
-func (rp *rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
-	return nil, errors.New("stream unimplemented")
+// Image is a part of the Camera interface but is not implemented for the RPLiDAR.
+func (rp *rplidar) Image(context.Context, string, map[string]interface{}) ([]byte, camera.ImageMetadata, error) {
+	return nil, camera.ImageMetadata{}, errors.New("image unimplemented")
 }
 
 // Close stops the RPLiDAR and disposes of the driver.

@@ -43,7 +43,7 @@ func mainWithArgs(ctx context.Context, args []string, logger logging.Logger) err
 	}
 
 	// Instantiate the module itself
-	rpModule, err := module.NewModuleFromArgs(ctx, logger)
+	rpModule, err := module.NewModuleFromArgs(ctx)
 	if err != nil {
 		return err
 	}
