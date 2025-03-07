@@ -53,10 +53,10 @@ func TestScan(t *testing.T) {
 	// Create injected rplidar driver
 	injectedRPlidarDriver := inject.NewRPLiDARDriver()
 
-	injectedRPlidarDriver.GrabScanDataHqFunc = func(a ...interface{}) uint {
+	injectedRPlidarDriver.GrabScanDataHqFunc = func(_ ...interface{}) uint {
 		return uint(gen.RESULT_OPERATION_FAIL)
 	}
-	injectedRPlidarDriver.AscendScanDataFunc = func(a ...interface{}) uint {
+	injectedRPlidarDriver.AscendScanDataFunc = func(_ ...interface{}) uint {
 		return 0
 	}
 
