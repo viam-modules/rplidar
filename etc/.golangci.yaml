@@ -28,15 +28,12 @@ linters:
   enable:
       - staticcheck
       - govet
-      - vetshadow
       - goimports
-      - golint
       - unconvert
+      - unused
       - goconst
       - misspell
       - ineffassign
-      - varcheck
-      - deadcode
       - gofmt
       - unconvert
       - ineffassign

@@ -22,6 +22,7 @@ type nodes struct {
 	GetFlagFunc func() (_swig_ret byte)
 }
 
+// NewRPLiDARNodes creates a new RPLiDARNodes
 func NewRPLiDARNodes() nodes {
 	return nodes{}
 }
