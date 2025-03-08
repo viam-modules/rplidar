@@ -27,14 +27,12 @@ linters:
   enable-all: false
   enable:
       - staticcheck
-      - vet
+      - govet
       - vetshadow
       - goimports
       - golint
-      - structcheck
       - unconvert
       - goconst
-      - interfacer
       - misspell
       - ineffassign
       - varcheck
@@ -42,7 +40,6 @@ linters:
       - gofmt
       - unconvert
       - ineffassign
-      - interfacer
   disable:
   fast: false
 
