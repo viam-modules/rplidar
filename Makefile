@@ -60,3 +60,6 @@ clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
 
 include *.make
+
+license-check:
+	license_finder 
