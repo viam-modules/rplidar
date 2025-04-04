@@ -53,10 +53,10 @@ func TestScan(t *testing.T) {
 	// Create injected rplidar driver
 	injectedRPlidarDriver := inject.NewRPLiDARDriver()
 
-	injectedRPlidarDriver.GrabScanDataHqFunc = func(a ...interface{}) uint {
+	injectedRPlidarDriver.GrabScanDataHqFunc = func(_ ...interface{}) uint {
 		return uint(gen.RESULT_OPERATION_FAIL)
 	}
-	injectedRPlidarDriver.AscendScanDataFunc = func(a ...interface{}) uint {
+	injectedRPlidarDriver.AscendScanDataFunc = func(_ ...interface{}) uint {
 		return 0
 	}
 
@@ -195,17 +195,11 @@ func TestUnimplementedFunctions(t *testing.T) {
 		test.That(t, namedImage, test.ShouldBeNil)
 	})
 
-	t.Run("unimplemented Projector function", func(t *testing.T) {
-		proj, err := rp.Projector(ctx)
+	t.Run("unimplemented Image function", func(t *testing.T) {
+		img, meta, err := rp.Image(ctx, "", nil)
 		test.That(t, err, test.ShouldNotBeNil)
 		test.That(t, err.Error(), test.ShouldContainSubstring, "unimplemented")
-		test.That(t, proj, test.ShouldBeNil)
-	})
-
-	t.Run("unimplemented Stream function", func(t *testing.T) {
-		stream, err := rp.Stream(ctx)
-		test.That(t, err, test.ShouldNotBeNil)
-		test.That(t, err.Error(), test.ShouldContainSubstring, "unimplemented")
-		test.That(t, stream, test.ShouldBeNil)
+		test.That(t, meta, test.ShouldResemble, camera.ImageMetadata{})
+		test.That(t, img, test.ShouldBeNil)
 	})
 }

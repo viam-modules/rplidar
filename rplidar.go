@@ -19,11 +19,9 @@ import (
 	"github.com/golang/geo/r3"
 	"github.com/pkg/errors"
 	"go.viam.com/rdk/components/camera"
-	"go.viam.com/rdk/gostream"
 	"go.viam.com/rdk/logging"
 	"go.viam.com/rdk/pointcloud"
 	"go.viam.com/rdk/resource"
-	"go.viam.com/rdk/rimage/transform"
 	"go.viam.com/rdk/spatialmath"
 	"go.viam.com/rdk/utils"
 	rputils "go.viam.com/rplidar/utils"
@@ -111,7 +109,7 @@ type Config struct {
 }
 
 // Validate checks that the config attributes are valid for an RPLiDAR.
-func (conf *Config) Validate(path string) ([]string, error) {
+func (conf *Config) Validate(_ string) ([]string, error) {
 
 	if conf.MinRangeMM < 0 {
 		return nil, errors.New("min_range must be positive")
@@ -240,7 +238,7 @@ func (rp *rplidar) cachePointCloudLoop(ctx context.Context) {
 }
 
 // scan uses the serial connection to the RPLiDAR to get data and create a pointcloud from it
-func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointCloud, error) {
+func (rp *rplidar) scan(_ context.Context, numScans int) (pointcloud.PointCloud, error) {
 	rp.device.mutex.Lock()
 	defer rp.device.mutex.Unlock()
 
@@ -286,7 +284,7 @@ func (rp *rplidar) scan(ctx context.Context, numScans int) (pointcloud.PointClou
 
 // NextPointCloud returns the current cached point cloud. If no pointcloud has been added to the cache at the
 // point this call is made, it will return an error
-func (rp *rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, error) {
+func (rp *rplidar) NextPointCloud(_ context.Context) (pointcloud.PointCloud, error) {
 	rp.cache.mutex.RLock()
 	defer rp.cache.mutex.RUnlock()
 
@@ -297,30 +295,25 @@ func (rp *rplidar) NextPointCloud(ctx context.Context) (pointcloud.PointCloud, e
 }
 
 // Images is a part of the camera interface but is not implemented for the RPLiDAR.
-func (rp *rplidar) Images(ctx context.Context) ([]camera.NamedImage, resource.ResponseMetadata, error) {
+func (rp *rplidar) Images(_ context.Context) ([]camera.NamedImage, resource.ResponseMetadata, error) {
 	return nil, resource.ResponseMetadata{}, errors.New("images unimplemented")
 }
 
 // Properties returns information regarding the output of the RPLiDAR, in this case that it returns PCDs.
-func (rp *rplidar) Properties(ctx context.Context) (camera.Properties, error) {
+func (rp *rplidar) Properties(_ context.Context) (camera.Properties, error) {
 	props := camera.Properties{
 		SupportsPCD: true,
 	}
 	return props, nil
 }
 
-// Projector is a part of the Camera interface but is not implemented for the RPLiDAR.
-func (rp *rplidar) Projector(ctx context.Context) (transform.Projector, error) {
-	return nil, errors.New("projector unimplemented")
-}
-
-// Stream is a part of the Camera interface but is not implemented for the RPLiDAR.
-func (rp *rplidar) Stream(ctx context.Context, errHandlers ...gostream.ErrorHandler) (gostream.VideoStream, error) {
-	return nil, errors.New("stream unimplemented")
+// Image is a part of the Camera interface but is not implemented for the RPLiDAR.
+func (rp *rplidar) Image(context.Context, string, map[string]interface{}) ([]byte, camera.ImageMetadata, error) {
+	return nil, camera.ImageMetadata{}, errors.New("image unimplemented")
 }
 
 // Close stops the RPLiDAR and disposes of the driver.
-func (rp *rplidar) Close(ctx context.Context) error {
+func (rp *rplidar) Close(_ context.Context) error {
 
 	// Close background process
 	rp.cancelFunc()
