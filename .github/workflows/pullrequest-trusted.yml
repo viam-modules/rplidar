@@ -7,14 +7,15 @@ concurrency:
 
 on:
   pull_request_target:
-    branches: [ 'main' ]
-    types: [ 'opened', 'synchronize', 'reopened', 'labeled' ]
 
 # To test workflow updates you need to work in a branch directly on viam-modules/rplidar
 # and tag your working branch instead of @main in any viam-modules/rplidar "uses" below.
 # Don't forget to tag back to @main before merge.
 
 jobs:
+  license_finder:
+    uses: viam-modules/rplidar/.github/workflows/license_finder.yml@main
+    
   test:
     uses: viam-modules/rplidar/.github/workflows/test.yml@main
 
