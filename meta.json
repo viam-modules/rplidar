@@ -11,5 +11,11 @@
       "short_description": "camera model for the RPLidar."
     }
   ],
-  "entrypoint": "rplidar-module.AppImage"
+  "entrypoint": "rplidar-module.AppImage",
+  "build": {
+    "setup": "make setup",
+    "build": "make appimage && cp etc/packaging/appimages/deploy/rplidar-module-*.AppImage rplidar-module.AppImage && tar czf module.tar.gz rplidar-module.AppImage",
+    "path": "module.tar.gz",
+    "arch": ["linux/amd64", "linux/arm64"]
+  }
 }
