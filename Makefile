@@ -32,11 +32,10 @@ goformat:
 
 lint: goformat
 	go install github.com/edaniels/golinters/cmd/combined
-	go install github.com/golangci/golangci-lint/cmd/golangci-lint
 	go install github.com/polyfloyd/go-errorlint
 	go list -f '{{.Dir}}' ./... | grep -v gen | xargs go vet -vettool=`go env GOPATH`/bin/combined
 	go list -f '{{.Dir}}' ./... | grep -v gen | xargs `go env GOPATH`/bin/go-errorlint -errorf
-	go list -f '{{.Dir}}' ./... | grep -v gen | xargs go run github.com/golangci/golangci-lint/cmd/golangci-lint run -v --config=./etc/.golangci.yaml
+	go list -f '{{.Dir}}' ./... | grep -v gen | xargs go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2 run -v --config=./etc/.golangci.yaml --timeout=5m
 
 sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE)

@@ -415,7 +415,7 @@ func checkLockFiles(devicePath string) (string, error) {
 		// Remove lock files for processes that are not currently ongoing
 		if !matchFound {
 			if err := os.Remove(rplidarModuleLockDir + lockFileName); err != nil {
-				return "", errors.Wrapf(err, fmt.Sprintf("could not remove lock file %v", lockFileName))
+				return "", errors.Wrapf(err, "could not remove lock file %v", lockFileName)
 			}
 		}
 	}
