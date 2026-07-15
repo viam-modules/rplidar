@@ -22,7 +22,7 @@ func TestValidate(t *testing.T) {
 			MinRangeMM: 0,
 		}
 
-		deps, err := cfg.Validate("")
+		deps, _, err := cfg.Validate("")
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, deps, test.ShouldBeNil)
 	})
@@ -31,7 +31,7 @@ func TestValidate(t *testing.T) {
 			MinRangeMM: 1,
 		}
 
-		deps, err := cfg.Validate("")
+		deps, _, err := cfg.Validate("")
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, deps, test.ShouldBeNil)
 	})
@@ -40,7 +40,7 @@ func TestValidate(t *testing.T) {
 			MinRangeMM: -1,
 		}
 
-		deps, err := cfg.Validate("")
+		deps, _, err := cfg.Validate("")
 		test.That(t, err, test.ShouldNotBeNil)
 		test.That(t, err.Error(), test.ShouldEqual, "min_range must be positive")
 		test.That(t, deps, test.ShouldBeNil)
@@ -95,27 +95,27 @@ func TestNextPointCloud(t *testing.T) {
 	t.Run("returns nil pointcloud from cache", func(t *testing.T) {
 		rp.cache.pointCloud = nil
 
-		pc, err := rp.NextPointCloud(ctx)
+		pc, err := rp.NextPointCloud(ctx, nil)
 		test.That(t, err, test.ShouldNotBeNil)
 		test.That(t, err.Error(), test.ShouldEqual, errors.New("pointcloud has not been saved yet").Error())
 		test.That(t, pc, test.ShouldBeNil)
 	})
 
 	t.Run("returns empty pointcloud from cache", func(t *testing.T) {
-		rp.cache.pointCloud = pointcloud.New()
+		rp.cache.pointCloud = pointcloud.NewBasicEmpty()
 
-		pc, err := rp.NextPointCloud(ctx)
+		pc, err := rp.NextPointCloud(ctx, nil)
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, pc, test.ShouldResemble, pointcloud.New())
+		test.That(t, pc, test.ShouldResemble, pointcloud.NewBasicEmpty())
 
 	})
 
 	t.Run("returns non-empty pointcloud from cache", func(t *testing.T) {
-		cachedPointCloud := pointcloud.New()
+		cachedPointCloud := pointcloud.NewBasicEmpty()
 		cachedPointCloud.Set(r3.Vector{X: 1, Y: 2, Z: 3}, pointcloud.NewBasicData())
 		rp.cache.pointCloud = cachedPointCloud
 
-		pc, err := rp.NextPointCloud(ctx)
+		pc, err := rp.NextPointCloud(ctx, nil)
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, pc, test.ShouldResemble, cachedPointCloud)
 	})
@@ -188,18 +188,10 @@ func TestUnimplementedFunctions(t *testing.T) {
 	rp := rplidar{}
 
 	t.Run("unimplemented Images function", func(t *testing.T) {
-		namedImage, metadata, err := rp.Images(ctx)
+		namedImage, metadata, err := rp.Images(ctx, nil, nil)
 		test.That(t, err, test.ShouldNotBeNil)
 		test.That(t, err.Error(), test.ShouldContainSubstring, "unimplemented")
 		test.That(t, metadata, test.ShouldResemble, resource.ResponseMetadata{})
 		test.That(t, namedImage, test.ShouldBeNil)
-	})
-
-	t.Run("unimplemented Image function", func(t *testing.T) {
-		img, meta, err := rp.Image(ctx, "", nil)
-		test.That(t, err, test.ShouldNotBeNil)
-		test.That(t, err.Error(), test.ShouldContainSubstring, "unimplemented")
-		test.That(t, meta, test.ShouldResemble, camera.ImageMetadata{})
-		test.That(t, img, test.ShouldBeNil)
 	})
 }

@@ -109,13 +109,13 @@ type Config struct {
 }
 
 // Validate checks that the config attributes are valid for an RPLiDAR.
-func (conf *Config) Validate(_ string) ([]string, error) {
+func (conf *Config) Validate(_ string) ([]string, []string, error) {
 
 	if conf.MinRangeMM < 0 {
-		return nil, errors.New("min_range must be positive")
+		return nil, nil, errors.New("min_range must be positive")
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 func init() {
@@ -242,7 +242,7 @@ func (rp *rplidar) scan(_ context.Context, numScans int) (pointcloud.PointCloud,
 	rp.device.mutex.Lock()
 	defer rp.device.mutex.Unlock()
 
-	pc := pointcloud.New()
+	pc := pointcloud.NewBasicEmpty()
 
 	var dropCount int
 	nodeCount := int64(defaultNodeSize)
@@ -284,7 +284,7 @@ func (rp *rplidar) scan(_ context.Context, numScans int) (pointcloud.PointCloud,
 
 // NextPointCloud returns the current cached point cloud. If no pointcloud has been added to the cache at the
 // point this call is made, it will return an error
-func (rp *rplidar) NextPointCloud(_ context.Context) (pointcloud.PointCloud, error) {
+func (rp *rplidar) NextPointCloud(_ context.Context, _ map[string]interface{}) (pointcloud.PointCloud, error) {
 	rp.cache.mutex.RLock()
 	defer rp.cache.mutex.RUnlock()
 
@@ -295,7 +295,7 @@ func (rp *rplidar) NextPointCloud(_ context.Context) (pointcloud.PointCloud, err
 }
 
 // Images is a part of the camera interface but is not implemented for the RPLiDAR.
-func (rp *rplidar) Images(_ context.Context) ([]camera.NamedImage, resource.ResponseMetadata, error) {
+func (rp *rplidar) Images(_ context.Context, _ []string, _ map[string]interface{}) ([]camera.NamedImage, resource.ResponseMetadata, error) {
 	return nil, resource.ResponseMetadata{}, errors.New("images unimplemented")
 }
 
@@ -307,9 +307,9 @@ func (rp *rplidar) Properties(_ context.Context) (camera.Properties, error) {
 	return props, nil
 }
 
-// Image is a part of the Camera interface but is not implemented for the RPLiDAR.
-func (rp *rplidar) Image(context.Context, string, map[string]interface{}) ([]byte, camera.ImageMetadata, error) {
-	return nil, camera.ImageMetadata{}, errors.New("image unimplemented")
+// Geometries is part of the resource.Shaped interface and returns nil for the RPLiDAR.
+func (rp *rplidar) Geometries(_ context.Context, _ map[string]interface{}) ([]spatialmath.Geometry, error) {
+	return nil, nil
 }
 
 // Close stops the RPLiDAR and disposes of the driver.
