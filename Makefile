@@ -1,5 +1,6 @@
 BUILD_CHANNEL?=local
 OS=$(shell uname)
+GOVERSION = $(shell grep '^go .\..' go.mod | head -n1 | cut -d' ' -f2)
 VERSION=v1.12.0
 GIT_REVISION = $(shell git rev-parse HEAD | tr -d '\n')
 TAG_VERSION?=$(shell git tag --points-at | sort -Vr | head -n1)
@@ -35,7 +36,7 @@ lint: goformat
 	go install github.com/polyfloyd/go-errorlint
 	go list -f '{{.Dir}}' ./... | grep -v gen | xargs go vet -vettool=`go env GOPATH`/bin/combined
 	go list -f '{{.Dir}}' ./... | grep -v gen | xargs `go env GOPATH`/bin/go-errorlint -errorf
-	go list -f '{{.Dir}}' ./... | grep -v gen | xargs go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2 run -v --config=./etc/.golangci.yaml --timeout=5m
+	go list -f '{{.Dir}}' ./... | grep -v gen | xargs env GOTOOLCHAIN=go$(GOVERSION) go run github.com/golangci/golangci-lint/cmd/golangci-lint@v1.62.2 run -v --config=./etc/.golangci.yaml --timeout=5m
 
 sdk:
 	cd gen/third_party/rplidar_sdk-release-${VERSION}/sdk && $(MAKE)
