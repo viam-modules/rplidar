@@ -109,13 +109,13 @@ type Config struct {
 }
 
 // Validate checks that the config attributes are valid for an RPLiDAR.
-func (conf *Config) Validate(_ string) ([]string, error) {
+func (conf *Config) Validate(_ string) ([]string, []string, error) {
 
 	if conf.MinRangeMM < 0 {
-		return nil, errors.New("min_range must be positive")
+		return nil, nil, errors.New("min_range must be positive")
 	}
 
-	return nil, nil
+	return nil, nil, nil
 }
 
 func init() {
@@ -242,7 +242,7 @@ func (rp *rplidar) scan(_ context.Context, numScans int) (pointcloud.PointCloud,
 	rp.device.mutex.Lock()
 	defer rp.device.mutex.Unlock()
 
-	pc := pointcloud.New()
+	pc := pointcloud.NewBasicEmpty()
 
 	var dropCount int
 	nodeCount := int64(defaultNodeSize)

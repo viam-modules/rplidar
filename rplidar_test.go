@@ -22,28 +22,31 @@ func TestValidate(t *testing.T) {
 			MinRangeMM: 0,
 		}
 
-		deps, err := cfg.Validate("")
+		deps, optionalDeps, err := cfg.Validate("")
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, deps, test.ShouldBeNil)
+		test.That(t, optionalDeps, test.ShouldBeNil)
 	})
 	t.Run("min range is greater than zero", func(t *testing.T) {
 		cfg := Config{
 			MinRangeMM: 1,
 		}
 
-		deps, err := cfg.Validate("")
+		deps, optionalDeps, err := cfg.Validate("")
 		test.That(t, err, test.ShouldBeNil)
 		test.That(t, deps, test.ShouldBeNil)
+		test.That(t, optionalDeps, test.ShouldBeNil)
 	})
 	t.Run("min range is less than zero", func(t *testing.T) {
 		cfg := Config{
 			MinRangeMM: -1,
 		}
 
-		deps, err := cfg.Validate("")
+		deps, optionalDeps, err := cfg.Validate("")
 		test.That(t, err, test.ShouldNotBeNil)
 		test.That(t, err.Error(), test.ShouldEqual, "min_range must be positive")
 		test.That(t, deps, test.ShouldBeNil)
+		test.That(t, optionalDeps, test.ShouldBeNil)
 	})
 }
 
@@ -102,16 +105,16 @@ func TestNextPointCloud(t *testing.T) {
 	})
 
 	t.Run("returns empty pointcloud from cache", func(t *testing.T) {
-		rp.cache.pointCloud = pointcloud.New()
+		rp.cache.pointCloud = pointcloud.NewBasicEmpty()
 
 		pc, err := rp.NextPointCloud(ctx, nil)
 		test.That(t, err, test.ShouldBeNil)
-		test.That(t, pc, test.ShouldResemble, pointcloud.New())
+		test.That(t, pc, test.ShouldResemble, pointcloud.NewBasicEmpty())
 
 	})
 
 	t.Run("returns non-empty pointcloud from cache", func(t *testing.T) {
-		cachedPointCloud := pointcloud.New()
+		cachedPointCloud := pointcloud.NewBasicEmpty()
 		cachedPointCloud.Set(r3.Vector{X: 1, Y: 2, Z: 3}, pointcloud.NewBasicData())
 		rp.cache.pointCloud = cachedPointCloud
 
