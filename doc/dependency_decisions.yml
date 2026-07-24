@@ -161,3 +161,53 @@
     :why:
     :versions: []
     :when: 2025-03-17 15:21:04.946556000 Z
+- - :add_package
+  - codeberg.org/go-fonts/liberation
+  - v0.5.0
+  - &1
+    :who: martha-johnston
+    :why: moved from github.com/go-fonts/liberation to codeberg
+    :versions: []
+    :when: 2026-07-24 16:45:00.000000000 Z
+- - :license
+  - codeberg.org/go-fonts/liberation
+  - BSD-3
+  - *1
+- - :add_package
+  - codeberg.org/go-latex/latex
+  - v0.1.0
+  - &2
+    :who: martha-johnston
+    :why: moved from github.com/go-latex/latex to codeberg
+    :versions: []
+    :when: 2026-07-24 16:45:00.000000000 Z
+- - :license
+  - codeberg.org/go-latex/latex
+  - BSD-3
+  - *2
+- - :license
+  - github.com/hashicorp/go-getter
+  - Mozilla Public License 2.0
+  - :who: martha-johnston
+    :why: license_finder cannot auto-detect; see https://github.com/hashicorp/go-getter/blob/main/LICENSE
+    :versions: []
+    :when: 2026-07-24 16:45:00.000000000 Z
+- - :license
+  - github.com/hashicorp/go-version
+  - Mozilla Public License 2.0
+  - :who: martha-johnston
+    :why: license_finder cannot auto-detect; see https://github.com/hashicorp/go-version/blob/main/LICENSE
+    :versions: []
+    :when: 2026-07-24 16:45:00.000000000 Z
+- - :permit
+  - Mozilla Public License 2.0
+  - :who: martha-johnston
+    :why: MPL 2.0 is file-level weak copyleft; permitted for third-party dependencies
+    :versions: []
+    :when: 2026-07-24 16:45:00.000000000 Z
+- - :permit
+  - The Unlicense
+  - :who: martha-johnston
+    :why: public domain dedication; no restrictions on use
+    :versions: []
+    :when: 2026-07-24 16:45:00.000000000 Z

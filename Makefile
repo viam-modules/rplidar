@@ -54,7 +54,7 @@ install:
 	sudo cp bin/rplidar-module /usr/local/bin/rplidar-module
 
 test: swig
-	CGO_LDFLAGS=${CGO_LDFLAGS} go test -v -coverprofile=coverage.txt -covermode=atomic ./... -race
+	CGO_LDFLAGS=${CGO_LDFLAGS} go test -v ./... -race
 
 clean: clean-sdk
 	rm -rf bin gen/gen_wrap.cxx gen/gen.go
