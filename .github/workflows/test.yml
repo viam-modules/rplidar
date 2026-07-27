@@ -54,6 +54,8 @@ jobs:
       with:
         ref: ${{ github.event.pull_request.head.sha }}
         fetch-depth: 2
+        # safe: gated by the 'safe to test' label (pr-labeler.yml)
+        allow-unsafe-pr-checkout: true
 
     - name: Clean and Fix Permissions
       run: |
