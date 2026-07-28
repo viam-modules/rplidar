@@ -6,7 +6,9 @@ concurrency:
   cancel-in-progress: true
 
 on:
+  # gated by the 'safe to test' label (see pr-labeler.yml)
   pull_request_target:
+    types: [ labeled ]
 
 # To test workflow updates you need to work in a branch directly on viam-modules/rplidar
 # and tag your working branch instead of @main in any viam-modules/rplidar "uses" below.
@@ -14,16 +16,18 @@ on:
 
 jobs:
   license_finder:
+    if: github.event.label.name == 'safe to test' && contains(github.event.pull_request.labels.*.name, 'safe to test')
     uses: viam-modules/rplidar/.github/workflows/license_finder.yml@main
     
   test:
+    if: github.event.label.name == 'safe to test' && contains(github.event.pull_request.labels.*.name, 'safe to test')
     uses: viam-modules/rplidar/.github/workflows/test.yml@main
 
   # This lets people add an "appimage" tag to have appimages built for the PR
   appimage:
     needs: [test]
     if: |
-      always() && !cancelled() &&
+      always() && !cancelled() && contains(github.event.pull_request.labels.*.name, 'safe to test') &&
       !contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests') &&
       contains(github.event.pull_request.labels.*.name, 'appimage') && needs.test.result == 'success'
     uses: viam-modules/rplidar/.github/workflows/appimage.yml@main
@@ -35,7 +39,7 @@ jobs:
 
   appimage-ignore-tests:
     if: |
-       always() && !cancelled() &&
+       always() && !cancelled() && contains(github.event.pull_request.labels.*.name, 'safe to test') &&
        contains(github.event.pull_request.labels.*.name, 'appimage-ignore-tests')
     uses: viam-modules/rplidar/.github/workflows/appimage.yml@main
     with:
