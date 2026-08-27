@@ -376,10 +376,7 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 // devicePathLockIdentifier converts a serial device path into a filesystem-safe token for lock files.
 // Lock files always live under /tmp, so device paths like /dev/serial/by-id/... must not contain slashes.
 func devicePathLockIdentifier(devicePath string) string {
-	id := devicePath
-	if strings.HasPrefix(id, devPathPrefix) {
-		id = id[len(devPathPrefix):]
-	}
+	id := strings.TrimPrefix(devicePath, devPathPrefix)
 	return strings.ReplaceAll(id, "/", "_")
 }
 
