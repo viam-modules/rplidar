@@ -16,6 +16,22 @@ import (
 	"go.viam.com/test"
 )
 
+func TestDevicePathLockIdentifier(t *testing.T) {
+	t.Run("simple tty device path", func(t *testing.T) {
+		test.That(t, devicePathLockIdentifier("/dev/ttyUSB0"), test.ShouldEqual, "ttyUSB0")
+	})
+
+	t.Run("serial by-id path", func(t *testing.T) {
+		path := "/dev/serial/by-id/usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_0001"
+		test.That(t, devicePathLockIdentifier(path), test.ShouldEqual,
+			"serial_by-id_usb-Silicon_Labs_CP2102N_USB_to_UART_Bridge_Controller_0001")
+	})
+
+	t.Run("path without dev prefix", func(t *testing.T) {
+		test.That(t, devicePathLockIdentifier("serial/by-id/foo"), test.ShouldEqual, "serial_by-id_foo")
+	})
+}
+
 func TestValidate(t *testing.T) {
 	t.Run("min range is zero", func(t *testing.T) {
 		cfg := Config{

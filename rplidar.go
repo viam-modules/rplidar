@@ -46,7 +46,7 @@ const (
 
 	rplidarModuleLockDir      = "/tmp/"
 	rplidarModuleLockFileName = "rplidar_pid%v_dv%v.lock"
-	devicePathPrefixOffset    = len(`\dev\`)
+	devPathPrefix             = "/dev/"
 
 	// A1 rplidar model
 	A1 RPLiDARModel = iota
@@ -373,9 +373,17 @@ func pointFrom(yaw, pitch, distance float64, reflectivity uint8) (r3.Vector, poi
 	return pos, d
 }
 
+// devicePathLockIdentifier converts a serial device path into a filesystem-safe token for lock files.
+// Lock files always live under /tmp, so device paths like /dev/serial/by-id/... must not contain slashes.
+func devicePathLockIdentifier(devicePath string) string {
+	id := strings.TrimPrefix(devicePath, devPathPrefix)
+	return strings.ReplaceAll(id, "/", "_")
+}
+
 // checkLockFiles compares the current process and device_path to rplidar.lock files to see if any ongoing
 // sessions for that device path still exist
 func checkLockFiles(devicePath string) (string, error) {
+	deviceLockID := devicePathLockIdentifier(devicePath)
 
 	// Get rplidar related processes
 	rplidarProcesses, err := getRplidarProcesses()
@@ -404,7 +412,7 @@ func checkLockFiles(devicePath string) (string, error) {
 		for _, oldProc := range oldProcesses {
 			if strings.Contains(lockFileName, fmt.Sprintf("pid%v", oldProc)) {
 				matchFound = true
-				if strings.Contains(lockFileName, fmt.Sprintf("dv%v", devicePath[devicePathPrefixOffset:])) {
+				if strings.Contains(lockFileName, fmt.Sprintf("dv%v", deviceLockID)) {
 					return "", errors.Errorf("another rplidar-module process using the same serial_path has been found, "+
 						"possibly from an incomplete closure of a previous session. To use this serial path again, kill "+
 						"the old process by running 'sudo kill -9 <PID>' (PID(s): %v)", oldProc)
@@ -421,7 +429,7 @@ func checkLockFiles(devicePath string) (string, error) {
 	}
 
 	// Create lock file for current session
-	newLockFile := rplidarModuleLockDir + fmt.Sprintf(rplidarModuleLockFileName, currentProcess, devicePath[devicePathPrefixOffset:])
+	newLockFile := rplidarModuleLockDir + fmt.Sprintf(rplidarModuleLockFileName, currentProcess, deviceLockID)
 	f, err := os.Create(newLockFile)
 	if err != nil {
 		return "", errors.Wrapf(err, "could not create lock file")
