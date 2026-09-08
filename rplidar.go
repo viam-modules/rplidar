@@ -54,15 +54,20 @@ const (
 	A3
 	// S1 rplidar model
 	S1
+	// S2 rplidar model
+	S2
+	// S3 rplidar model
+	S3
 )
 
 var (
 	// Model is the model of the RPLiDAR
 	Model = resource.NewModel("viam", "lidar", "rplidar")
-	// rplidarModelByteMap maps the byte model representation to a string representation
-	rplidarModelByteMap = map[byte]RPLiDARModel{24: A1, 49: A3, 97: S1}
+	// rplidarModelByteMap maps the device-info model byte to a known RPLiDAR model.
+	// Encoding is (major<<4)|submodel: A1=0x18, A3=0x31, S1=0x61, S2=0x71, S3=0x81.
+	rplidarModelByteMap = map[byte]RPLiDARModel{24: A1, 49: A3, 97: S1, 113: S2, 129: S3}
 	// The max capture frequency for rplidar models, based on their datasheets
-	maxScanningFrequencyByModel = map[RPLiDARModel]float64{A1: 10, A3: 15, S1: 15}
+	maxScanningFrequencyByModel = map[RPLiDARModel]float64{A1: 10, A3: 15, S1: 15, S2: 15, S3: 20}
 )
 
 // modelToString converted the RPLiDARModel to a string
@@ -74,9 +79,27 @@ func modelToString(model RPLiDARModel) string {
 		return "A3"
 	case S1:
 		return "S1"
+	case S2:
+		return "S2"
+	case S3:
+		return "S3"
 	default:
 	}
 	return "unsupported model"
+}
+
+// lookupRPLiDARModel returns the known model for a device-info model byte.
+func lookupRPLiDARModel(modelByte byte) (RPLiDARModel, error) {
+	model, ok := rplidarModelByteMap[modelByte]
+	if !ok {
+		return 0, errors.Errorf("unsupported rplidar model byte %d (0x%02X)", modelByte, modelByte)
+	}
+	return model, nil
+}
+
+// isSSeries reports whether the model manages its own motor (S1/S2/S3).
+func isSSeries(model RPLiDARModel) bool {
+	return model == S1 || model == S2 || model == S3
 }
 
 // dataCache stores pointcloud data returned from the RPLiDAR for later access. This data is under mutex protection.
@@ -150,20 +173,26 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 		return nil, err
 	}
 
-	rplidarModel := rplidarModelByteMap[rplidarDevice.model]
+	rplidarModel, err := lookupRPLiDARModel(rplidarDevice.model)
+	if err != nil {
+		gen.RPlidarDriverDisposeDriver(rplidarDevice.driver)
+		return nil, err
+	}
 	logger.Info("found and connected to an " + modelToString(rplidarModel) + " rplidar")
 
 	// Check configured capture frequency
 	captureFreqHz, err := getCaptureFrequencyHzFromConfig(c)
 	if err != nil {
+		gen.RPlidarDriverDisposeDriver(rplidarDevice.driver)
 		return nil, err
 	}
 
 	if captureFreqHz > maxScanningFrequencyByModel[rplidarModel] {
+		gen.RPlidarDriverDisposeDriver(rplidarDevice.driver)
 		return nil, errors.Errorf("configured capture frequency (%v) is greater than max frequency (%v) for rplidar %v",
 			captureFreqHz,
 			maxScanningFrequencyByModel[rplidarModel],
-			rplidarModel)
+			modelToString(rplidarModel))
 	}
 
 	rp := &rplidar{
@@ -199,8 +228,12 @@ func newRplidar(ctx context.Context, _ resource.Dependencies, c resource.Config,
 // setupRPLiDAR starts the motor, if necessary, warms up the device, and ensures data returned to the
 // user is valid.
 func (rp *rplidar) setupRPLidar(ctx context.Context) error {
-	// Note: S1 RPLiDARs do not need to start the motor before scanning can begin
-	if rplidarModelByteMap[rp.device.model] != S1 {
+	// Note: S-series RPLiDARs manage motor spin themselves; do not call StartMotor.
+	model, err := lookupRPLiDARModel(rp.device.model)
+	if err != nil {
+		return err
+	}
+	if !isSSeries(model) {
 		rp.logger.Debug("starting motor")
 		rp.device.driver.StartMotor()
 	}
@@ -333,9 +366,8 @@ func (rp *rplidar) Close(_ context.Context) error {
 			}()
 		}
 		rp.device.driver.Stop()
-		// Stop the motor
-		// Note: S1 RPLiDAR do not require the motor to be stopped during closeout
-		if rplidarModelByteMap[rp.device.model] != S1 {
+		// Note: S-series RPLiDARs do not require StopMotor during closeout.
+		if model, err := lookupRPLiDARModel(rp.device.model); err == nil && !isSSeries(model) {
 			rp.logger.Debug("stopping motor")
 			rp.device.driver.StopMotor()
 		}
