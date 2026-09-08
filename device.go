@@ -50,10 +50,13 @@ func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 	devInfo := gen.NewRplidar_response_device_info_t()
 	defer gen.DeleteRplidar_response_device_info_t(devInfo)
 
+	// Baud rates by model family:
+	// 1000000: S2, S3; 256000: A3, S1; 115200: A1
 	var connectErr error
-	for _, rate := range []uint{256000, 115200} {
+	for _, rate := range []uint{1000000, 256000, 115200} {
 		possibleDriver := gen.RPlidarDriverCreateDriver(uint(gen.DRIVER_TYPE_SERIALPORT))
 		if result := possibleDriver.Connect(devicePath, rate); Result(result) != ResultOk {
+			gen.RPlidarDriverDisposeDriver(possibleDriver)
 			r := Result(result)
 			if r == ResultOpTimeout {
 				continue
@@ -63,6 +66,8 @@ func getRplidarDevice(devicePath string) (*rplidarDevice, error) {
 		}
 
 		if result := possibleDriver.GetDeviceInfo(devInfo, defaultDeviceTimeoutMs); Result(result) != ResultOk {
+			possibleDriver.Disconnect()
+			gen.RPlidarDriverDisposeDriver(possibleDriver)
 			r := Result(result)
 			if r == ResultOpTimeout {
 				continue

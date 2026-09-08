@@ -32,6 +32,42 @@ func TestDevicePathLockIdentifier(t *testing.T) {
 	})
 }
 
+func TestLookupRPLiDARModel(t *testing.T) {
+	cases := []struct {
+		modelByte byte
+		want      RPLiDARModel
+		wantName  string
+	}{
+		{24, A1, "A1"},
+		{49, A3, "A3"},
+		{97, S1, "S1"},
+		{113, S2, "S2"},
+		{129, S3, "S3"},
+	}
+	for _, tc := range cases {
+		t.Run(tc.wantName, func(t *testing.T) {
+			got, err := lookupRPLiDARModel(tc.modelByte)
+			test.That(t, err, test.ShouldBeNil)
+			test.That(t, got, test.ShouldEqual, tc.want)
+			test.That(t, modelToString(got), test.ShouldEqual, tc.wantName)
+		})
+	}
+
+	t.Run("unsupported model", func(t *testing.T) {
+		_, err := lookupRPLiDARModel(0)
+		test.That(t, err, test.ShouldNotBeNil)
+		test.That(t, err.Error(), test.ShouldContainSubstring, "unsupported rplidar model byte")
+	})
+}
+
+func TestIsSSeries(t *testing.T) {
+	test.That(t, isSSeries(A1), test.ShouldBeFalse)
+	test.That(t, isSSeries(A3), test.ShouldBeFalse)
+	test.That(t, isSSeries(S1), test.ShouldBeTrue)
+	test.That(t, isSSeries(S2), test.ShouldBeTrue)
+	test.That(t, isSSeries(S3), test.ShouldBeTrue)
+}
+
 func TestValidate(t *testing.T) {
 	t.Run("min range is zero", func(t *testing.T) {
 		cfg := Config{

@@ -6,6 +6,8 @@ It has been tested on the following rplidars:
 * [RPLIDAR A1](https://www.slamtec.com/en/Lidar/A1)
 * [RPLIDAR A3](https://www.slamtec.com/en/Lidar/A3)
 * [RPLIDAR S1](http://bucket.download.slamtec.com/f19ea8efcc2bb55dbfd5839f1d307e34aa4a6ca0/LD601_SLAMTEC_rplidar_datasheet_S1_v1.4_en.pdf)
+* [RPLIDAR S2](https://www.slamtec.com/en/Lidar/S2) (1M baud)
+* [RPLIDAR S3](https://www.slamtec.com/en/Lidar/S3) (1M baud)
 
 > [!NOTE]  
 > Before configuring your camera, you must [create a robot](https://docs.viam.com/manage/fleet/robots/#add-a-new-robot).
