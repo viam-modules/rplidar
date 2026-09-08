@@ -24,10 +24,10 @@ AppDir:
     - amd64
     allow_unauthenticated: true
     sources:
-    - sourceline: deb [trusted=yes] http://deb.debian.org/debian bullseye main
-    - sourceline: deb [trusted=yes] http://deb.debian.org/debian-security bullseye-security main
-    - sourceline: deb [trusted=yes] http://deb.debian.org/debian bullseye-updates main
-    - sourceline: deb [trusted=yes] https://us-apt.pkg.dev/projects/static-file-server-310021 bullseye main
+    - sourceline: deb [trusted=yes] http://deb.debian.org/debian bookworm main
+    - sourceline: deb [trusted=yes] http://deb.debian.org/debian-security bookworm-security main
+    - sourceline: deb [trusted=yes] http://deb.debian.org/debian bookworm-updates main
+    - sourceline: deb [trusted=yes] https://us-apt.pkg.dev/projects/static-file-server-310021 bookworm main
     include:
     - libstdc++6:amd64
     - libc6:amd64
